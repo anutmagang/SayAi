@@ -100,6 +100,9 @@ export default function ChatPage() {
   const [projectBusy, setProjectBusy] = useState(false);
   const [projectFilter, setProjectFilter] = useState<"all" | "added" | "modified" | "deleted" | "untracked">("all");
   const [projectQuery, setProjectQuery] = useState("");
+  const [inspectPanel, setInspectPanel] = useState<"none" | "tools" | "discovery" | "project">(
+    "none",
+  );
   const [auxErr, setAuxErr] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -272,19 +275,56 @@ export default function ChatPage() {
 
   return (
     <main className="h-[calc(100vh-4rem)] bg-[#060912] text-slate-100">
-      <div className="mx-auto grid h-full max-w-[1500px] grid-cols-1 gap-0 px-3 py-3 md:grid-cols-[250px_1fr] md:px-4 lg:grid-cols-[270px_1fr_230px]">
-        <aside className="hidden h-full flex-col rounded-2xl border border-slate-800 bg-[#0a0f1d] p-3 md:flex">
+      <div className="mx-auto grid h-full max-w-[1600px] grid-cols-[270px_1fr] gap-3 px-3 py-3 md:px-4">
+        <aside className="h-full flex-col rounded-2xl border border-slate-800 bg-[#0a0f1d] p-3">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-semibold tracking-wide text-sky-300">sayai</p>
             <span className="rounded-md bg-slate-900 px-2 py-1 text-[10px] text-slate-400">chat</span>
           </div>
           <button
             type="button"
+            onClick={() => {
+              setMessages([]);
+              setSessionId(null);
+              setErr(null);
+            }}
             className="mb-3 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-left text-sm text-slate-200 hover:border-sky-600"
           >
             + New Chat
           </button>
+          <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/60 p-2 text-[11px] uppercase tracking-wide text-slate-500">
+            CHAT
+            <div className="mt-2 space-y-1 text-xs normal-case">
+              <button className="w-full rounded px-2 py-1 text-left text-slate-300 hover:bg-slate-800">Chat</button>
+              <button className="w-full rounded px-2 py-1 text-left text-slate-400 hover:bg-slate-800">Library</button>
+              <button className="w-full rounded px-2 py-1 text-left text-slate-400 hover:bg-slate-800">Models</button>
+            </div>
+          </div>
+          <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/60 p-2 text-[11px] uppercase tracking-wide text-slate-500">
+            AGENT
+            <div className="mt-2 space-y-1 text-xs normal-case">
+              <Link className="block rounded px-2 py-1 text-slate-300 hover:bg-slate-800" href="/skills">
+                Skills
+              </Link>
+              <Link className="block rounded px-2 py-1 text-slate-300 hover:bg-slate-800" href="/drafts">
+                Discovery Drafts
+              </Link>
+              <button
+                type="button"
+                onClick={() => setInspectPanel("project")}
+                className="w-full rounded px-2 py-1 text-left text-slate-300 hover:bg-slate-800"
+              >
+                Project Files ({changedFiles.length})
+              </button>
+            </div>
+          </div>
           <div className="mb-2 text-[11px] uppercase tracking-wide text-slate-500">Recent</div>
+          <input
+            value={projectQuery}
+            onChange={(e) => setProjectQuery(e.target.value)}
+            placeholder="Search chats..."
+            className="mb-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200 outline-none"
+          />
           <div className="space-y-1 overflow-y-auto pr-1">
             {recentChats.map((item) => (
               <button
@@ -303,14 +343,8 @@ export default function ChatPage() {
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-col rounded-2xl border border-slate-800 bg-[#0b1020] lg:mx-3">
+        <section className="relative flex min-w-0 flex-col rounded-2xl border border-slate-800 bg-[#0b1020]">
           <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm font-semibold">Chat</h1>
-              <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-300">
-                {modeLabel}
-              </span>
-            </div>
             <div className="flex items-center gap-2">
               <select className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none">
                 <option>main</option>
@@ -321,6 +355,11 @@ export default function ChatPage() {
                 <option>gpt-4o-mini</option>
                 <option>gemini-2.5-pro</option>
               </select>
+              <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-300">
+                {modeLabel}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
               <label className="flex cursor-pointer items-center gap-1 text-xs text-slate-300">
                 <input type="radio" name="mode" checked={mode === "chat"} onChange={() => setMode("chat")} />
                 Chat
@@ -331,24 +370,35 @@ export default function ChatPage() {
               </label>
               <button
                 type="button"
-                onClick={() => {
-                  setMessages([]);
-                  setSessionId(null);
-                  setErr(null);
-                }}
                 className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-600"
+                onClick={() => setInspectPanel((p) => (p === "tools" ? "none" : "tools"))}
               >
-                New
+                Tools
+              </button>
+              <button
+                type="button"
+                className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-600"
+                onClick={() => setInspectPanel((p) => (p === "discovery" ? "none" : "discovery"))}
+              >
+                Discovery
+              </button>
+              <button
+                type="button"
+                className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-600"
+                onClick={() => setInspectPanel((p) => (p === "project" ? "none" : "project"))}
+              >
+                Project
               </button>
             </div>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             {messages.length === 0 ? (
-              <div className="mx-auto mt-10 max-w-2xl text-center">
+              <div className="mx-auto mt-16 max-w-2xl text-center">
+                <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-rose-900/40" />
                 <p className="mb-2 text-xl font-semibold">Assistant</p>
                 <p className="mb-6 text-sm text-slate-400">
-                  Ketik pesan di bawah untuk mulai percakapan. Session tersimpan agar konteks tetap nyambung.
+                  Ready to chat. Type a message below or use quick prompts.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2">
                   {quickPrompts.map((prompt) => (
@@ -417,7 +467,7 @@ export default function ChatPage() {
             </div>
           </div>
 
-          <div className="border-t border-slate-800 px-4 py-3">
+          <div className="border-t border-slate-800 bg-[#0a0f1d] px-4 py-3">
             {err ? (
               <div className="mb-3 flex items-center justify-between rounded-lg border border-rose-900/40 bg-rose-950/20 px-3 py-2">
                 <p className="text-xs text-rose-300">{err}</p>
@@ -461,191 +511,144 @@ export default function ChatPage() {
               {sessionId ? <span>Session: {sessionId}</span> : <span>No session yet</span>}
             </div>
           </div>
-        </section>
-
-        <aside className="hidden h-full rounded-2xl border border-slate-800 bg-[#0a0f1d] p-3 text-xs text-slate-400 lg:block">
-          <div className="mb-3 flex items-center gap-1 rounded-lg bg-slate-900/70 p-1">
-            <button
-              type="button"
-              onClick={() => setPanel("tools")}
-              className={`flex-1 rounded-md px-2 py-1 text-[11px] ${
-                panel === "tools" ? "bg-sky-700 text-white" : "text-slate-400"
-              }`}
-            >
-              Tools
-            </button>
-            <button
-              type="button"
-              onClick={() => setPanel("discovery")}
-              className={`flex-1 rounded-md px-2 py-1 text-[11px] ${
-                panel === "discovery" ? "bg-sky-700 text-white" : "text-slate-400"
-              }`}
-            >
-              Discovery
-            </button>
-            <button
-              type="button"
-              onClick={() => setPanel("project")}
-              className={`flex-1 rounded-md px-2 py-1 text-[11px] ${
-                panel === "project" ? "bg-sky-700 text-white" : "text-slate-400"
-              }`}
-            >
-              Project
-            </button>
-          </div>
-          {panel === "tools" ? (
-            <div className="space-y-3">
-              <p className="text-[11px] uppercase tracking-wide text-slate-500">AI Tools Runtime</p>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <p className="mb-2 text-slate-300">Enabled skills ({enabledSkills.length})</p>
-                <div className="space-y-1">
-                  {enabledSkills.slice(0, 6).map((s) => (
-                    <div key={s.id} className="rounded bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300">
-                      {s.id}
-                    </div>
-                  ))}
-                  {enabledSkills.length === 0 ? (
-                    <p className="text-[11px] text-slate-500">No enabled skills.</p>
-                  ) : null}
-                </div>
-                <Link className="mt-2 inline-block text-[11px] text-sky-400 hover:underline" href="/skills">
-                  Open Skill Manager
-                </Link>
-              </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <p className="text-slate-300">Runtime</p>
-                <p className="mt-1 text-[11px]">Mode: {mode}</p>
-                <p className="text-[11px]">State: {busy ? "Thinking" : "Idle"}</p>
-                <p className="text-[11px]">Messages: {messages.length}</p>
-              </div>
-            </div>
-          ) : panel === "discovery" ? (
-            <div className="space-y-3">
-              <p className="text-[11px] uppercase tracking-wide text-slate-500">AI Discovery</p>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <p className="text-slate-300">Draft pipeline</p>
-                <p className="mt-1 text-[11px]">Total drafts: {drafts.length}</p>
-                <p className="text-[11px]">Submitted: {draftInReview.length}</p>
-                <div className="mt-2 space-y-1">
-                  {drafts.slice(0, 4).map((d) => (
-                    <div key={d.id} className="rounded bg-slate-950/60 px-2 py-1">
-                      <p className="truncate text-[11px] text-slate-300">{d.title}</p>
-                      <p className="text-[10px] text-slate-500">{d.status}</p>
-                    </div>
-                  ))}
-                  {drafts.length === 0 ? <p className="text-[11px] text-slate-500">No drafts yet.</p> : null}
-                </div>
-                <Link className="mt-2 inline-block text-[11px] text-sky-400 hover:underline" href="/drafts">
-                  Open Discovery Drafts
-                </Link>
-              </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <p className="text-slate-300">Skill packs ({packs.length})</p>
-                <div className="mt-2 space-y-1">
-                  {packs.slice(0, 4).map((p, idx) => (
-                    <div key={`${p.id ?? p.name ?? "pack"}-${idx}`} className="rounded bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300">
-                      {p.name ?? p.id ?? "Unnamed pack"} {p.version ? `v${p.version}` : ""}
-                    </div>
-                  ))}
-                  {packs.length === 0 ? <p className="text-[11px] text-slate-500">No packs found.</p> : null}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">Project Files</p>
+          {inspectPanel !== "none" ? (
+            <aside className="absolute right-3 top-16 z-20 h-[calc(100%-84px)] w-[330px] overflow-y-auto rounded-xl border border-slate-700 bg-[#0a0f1d] p-3 shadow-2xl">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{inspectPanel}</p>
                 <button
                   type="button"
-                  onClick={() => void loadAuxiliary()}
-                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:border-sky-600"
+                  className="rounded border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300"
+                  onClick={() => setInspectPanel("none")}
                 >
-                  Refresh
+                  Close
                 </button>
               </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-2">
-                <input
-                  value={projectQuery}
-                  onChange={(e) => setProjectQuery(e.target.value)}
-                  placeholder="Search files..."
-                  className="mb-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none"
-                />
-                <div className="flex flex-wrap gap-1">
-                  {(["all", "added", "modified", "deleted", "untracked"] as const).map((f) => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => setProjectFilter(f)}
-                      className={`rounded px-2 py-1 text-[10px] ${
-                        projectFilter === f ? "bg-sky-700 text-white" : "bg-slate-800 text-slate-300"
-                      }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
+              {inspectPanel === "tools" ? (
+                <div className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500">AI Tools Runtime</p>
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <p className="mb-2 text-slate-300">Enabled skills ({enabledSkills.length})</p>
+                    <div className="space-y-1">
+                      {enabledSkills.slice(0, 10).map((s) => (
+                        <div key={s.id} className="rounded bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300">
+                          {s.id}
+                        </div>
+                      ))}
+                    </div>
+                    <Link className="mt-2 inline-block text-[11px] text-sky-400 hover:underline" href="/skills">
+                      Open Skill Manager
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <p className="mb-2 text-slate-300">Changed files ({changedFilesFiltered.length})</p>
-                <div className="max-h-44 space-y-1 overflow-y-auto pr-1">
-                  {changedFilesFiltered.slice(0, 40).map((f) => (
-                    <button
-                      key={`${f.status}-${f.path}`}
-                      type="button"
-                      onClick={() => void loadFilePreview(f.path)}
-                      className="w-full rounded bg-slate-950/60 px-2 py-1 text-left hover:bg-slate-800"
-                    >
-                      <p className="truncate text-[10px] text-slate-200">{f.path}</p>
-                      <p className="text-[10px] uppercase text-slate-500">{f.status}</p>
-                    </button>
-                  ))}
-                  {changedFilesFiltered.length === 0 ? (
-                    <p className="text-[11px] text-slate-500">No git changes detected.</p>
-                  ) : null}
+              ) : null}
+              {inspectPanel === "discovery" ? (
+                <div className="space-y-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-500">AI Discovery</p>
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <p className="text-slate-300">Draft pipeline</p>
+                    <p className="mt-1 text-[11px]">Total drafts: {drafts.length}</p>
+                    <p className="text-[11px]">Submitted: {draftInReview.length}</p>
+                    <Link className="mt-2 inline-block text-[11px] text-sky-400 hover:underline" href="/drafts">
+                      Open Discovery Drafts
+                    </Link>
+                  </div>
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <p className="text-slate-300">Skill packs ({packs.length})</p>
+                    <div className="mt-2 space-y-1">
+                      {packs.slice(0, 6).map((p, idx) => (
+                        <div
+                          key={`${p.id ?? p.name ?? "pack"}-${idx}`}
+                          className="rounded bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300"
+                        >
+                          {p.name ?? p.id ?? "Unnamed pack"} {p.version ? `v${p.version}` : ""}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <p className="mb-2 text-slate-300">Folders & files ({recentTree.length})</p>
-                <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
-                  {recentTree.slice(0, 50).map((entry) => (
+              ) : null}
+              {inspectPanel === "project" ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] uppercase tracking-wide text-slate-500">Project Files</p>
                     <button
-                      key={entry.path}
                       type="button"
-                      disabled={entry.kind === "dir"}
-                      onClick={() => void loadFilePreview(entry.path)}
-                      className="w-full rounded bg-slate-950/60 px-2 py-1 text-left hover:bg-slate-800 disabled:opacity-60"
+                      onClick={() => void loadAuxiliary()}
+                      className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:border-sky-600"
                     >
-                      <p className="truncate text-[10px] text-slate-200">{entry.path}</p>
-                      <p className="text-[10px] uppercase text-slate-500">{entry.kind}</p>
+                      Refresh
                     </button>
-                  ))}
-                  {recentTree.length === 0 ? (
-                    <p className="text-[11px] text-slate-500">No tree entries loaded.</p>
-                  ) : null}
+                  </div>
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-2">
+                    <div className="flex flex-wrap gap-1">
+                      {(["all", "added", "modified", "deleted", "untracked"] as const).map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => setProjectFilter(f)}
+                          className={`rounded px-2 py-1 text-[10px] ${
+                            projectFilter === f
+                              ? "bg-sky-700 text-white"
+                              : "bg-slate-800 text-slate-300"
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <p className="mb-2 text-slate-300">
+                      Changed files ({changedFilesFiltered.length})
+                    </p>
+                    <div className="max-h-40 space-y-1 overflow-y-auto pr-1">
+                      {changedFilesFiltered.slice(0, 40).map((f) => (
+                        <button
+                          key={`${f.status}-${f.path}`}
+                          type="button"
+                          onClick={() => void loadFilePreview(f.path)}
+                          className="w-full rounded bg-slate-950/60 px-2 py-1 text-left hover:bg-slate-800"
+                        >
+                          <p className="truncate text-[10px] text-slate-200">{f.path}</p>
+                          <p className="text-[10px] uppercase text-slate-500">{f.status}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <p className="mb-2 text-slate-300">Folders & files ({recentTree.length})</p>
+                    <div className="max-h-40 space-y-1 overflow-y-auto pr-1">
+                      {recentTree.slice(0, 30).map((entry) => (
+                        <button
+                          key={entry.path}
+                          type="button"
+                          disabled={entry.kind === "dir"}
+                          onClick={() => void loadFilePreview(entry.path)}
+                          className="w-full rounded bg-slate-950/60 px-2 py-1 text-left hover:bg-slate-800 disabled:opacity-60"
+                        >
+                          <p className="truncate text-[10px] text-slate-200">{entry.path}</p>
+                          <p className="text-[10px] uppercase text-slate-500">{entry.kind}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                    <p className="mb-2 text-slate-300">File preview</p>
+                    {projectBusy ? <p className="text-[11px] text-slate-500">Loading preview...</p> : null}
+                    {projectPreview ? (
+                      <pre className="max-h-48 overflow-auto rounded bg-slate-950 p-2 text-[10px] text-slate-300">
+                        {projectPreview.content}
+                      </pre>
+                    ) : (
+                      <p className="text-[11px] text-slate-500">Click file to preview content.</p>
+                    )}
+                  </div>
                 </div>
-                <p className="mt-2 text-[10px] text-slate-500">Data source: /api/v1/project/snapshot</p>
-              </div>
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <p className="mb-2 text-slate-300">File preview</p>
-                {projectBusy ? <p className="text-[11px] text-slate-500">Loading preview...</p> : null}
-                {projectPreview ? (
-                  <>
-                    <p className="mb-1 truncate text-[10px] text-slate-400">{projectPreview.path}</p>
-                    <pre className="max-h-56 overflow-auto rounded bg-slate-950 p-2 text-[10px] text-slate-300">
-                      {projectPreview.content}
-                    </pre>
-                    {projectPreview.truncated ? (
-                      <p className="mt-1 text-[10px] text-amber-300">Preview truncated.</p>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="text-[11px] text-slate-500">Click file to preview content.</p>
-                )}
-              </div>
-            </div>
-          )}
-          {auxErr ? <p className="mt-3 text-[11px] text-amber-300">{auxErr}</p> : null}
-        </aside>
+              ) : null}
+              {auxErr ? <p className="mt-3 text-[11px] text-amber-300">{auxErr}</p> : null}
+            </aside>
+          ) : null}
+        </section>
       </div>
     </main>
   );
