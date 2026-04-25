@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sayai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sayai}
+      POSTGRES_DB: ${POSTGRES_DB:-sayai}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - sayai_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sayai} -d ${POSTGRES_DB:-sayai}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - sayai_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    profiles: ["full"]
+    image: qdrant/qdrant:v1.12.5
+    ports:
+      - "${QDRANT_HTTP_PORT:-6333}:6333"
+      - "${QDRANT_GRPC_PORT:-6334}:6334"
+    volumes:
+      - sayai_qdrant:/qdrant/storage
+
+  api:
+    build:
+      context: ./packages/backend
+      dockerfile: Dockerfile
+    environment:
+      APP_NAME: ${APP_NAME:-SayAi}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:-dev-only-rotate-this-openssl-rand-hex-32}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sayai}:${POSTGRES_PASSWORD:-sayai}@postgres:5432/${POSTGRES_DB:-sayai}
+      REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      DEFAULT_LLM_MODEL: ${DEFAULT_LLM_MODEL:-gpt-4o-mini}
+      AGENT_MAX_STEPS: ${AGENT_MAX_STEPS:-12}
+      CHAT_MAX_TOOL_ROUNDS: ${CHAT_MAX_TOOL_ROUNDS:-2}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-1536}
+      RAG_CHUNK_SIZE: ${RAG_CHUNK_SIZE:-1200}
+      RAG_CHUNK_OVERLAP: ${RAG_CHUNK_OVERLAP:-150}
+      RAG_DEFAULT_TOP_K: ${RAG_DEFAULT_TOP_K:-5}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  frontend:
+    profiles: ["full"]
+    build:
+      context: ./packages/frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - api
+
+volumes:
+  sayai_pg:
+  sayai_redis:
+  sayai_qdrant:

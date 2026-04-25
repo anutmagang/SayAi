@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sayai-api
+  labels:
+    app.kubernetes.io/name: sayai-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sayai-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sayai-api
+    spec:
+      containers:
+        - name: api
+          image: sayai/api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - secretRef:
+                name: sayai-api-secrets
+                optional: true
+          env:
+            - name: ENVIRONMENT
+              value: production
+            - name: CORS_ORIGINS
+              value: "*"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"

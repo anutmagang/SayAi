@@ -1,0 +1,17 @@
+{
+  "pack_id": "example_vendor",
+  "version": "0.1.0",
+  "title": "Example marketplace-style pack",
+  "skills": [
+    {
+      "id": "example.vendor_echo",
+      "extends_skill_id": "sayai.echo",
+      "description": "Vendor-branded echo (same handler as sayai.echo).",
+      "parameters": {
+        "type": "object",
+        "properties": { "message": { "type": "string" } },
+        "required": ["message"]
+      }
+    }
+  ]
+}
