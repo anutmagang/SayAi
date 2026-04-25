@@ -272,6 +272,7 @@ cd /opt/sayai && sudo chmod +x install.sh && sudo ./install.sh
 | Docker permission denied                | Jalankan compose dengan `sudo`, atau `sudo usermod -aG docker $USER` lalu logout/login.                         |
 | `/health/ready` merah tanpa Qdrant      | Set `QDRANT_URL=` kosong di `.env`.                                                                             |
 | UI tidak hit API                        | Set `NEXT_PUBLIC_API_URL` ke URL publik API, rebuild frontend / pakai profile full dengan env benar.            |
+| `POST /auth/register` **500**           | Versi lama: bentrok `passlib` + `bcrypt` 4.1+ di image. `git pull` lalu **`docker compose --profile full build --no-cache api`** (perbaikan pakai `bcrypt` native). |
 
 
 Jika butuh bantuan spesifik (log error, screenshot), kirim pesan error persis dari terminal atau Swagger.

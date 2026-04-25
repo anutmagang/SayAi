@@ -5,18 +5,25 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _password_bytes(plain: str) -> bytes:
+    """bcrypt accepts at most 72 bytes."""
+    b = plain.encode("utf-8")
+    return b[:72] if len(b) > 72 else b
 
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    return bcrypt.hashpw(_password_bytes(plain), bcrypt.gensalt()).decode("ascii")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(_password_bytes(plain), hashed.encode("ascii"))
+    except ValueError:
+        return False
 
 
 def create_access_token(*, subject: str, secret: str, algorithm: str, expires_minutes: int) -> str:
@@ -32,7 +39,7 @@ def decode_token(token: str, *, secret: str, algorithm: str) -> dict[str, Any]:
 
 def verify_token_subject(token: str, *, secret: str, algorithm: str) -> str | None:
     try:
-        payload = decode_token(token, secret=secret, algorithm=algorithm)
+        payload = decode_token(token=token, secret=secret, algorithm=algorithm)
         sub = payload.get("sub")
         if isinstance(sub, str) and sub:
             return sub
