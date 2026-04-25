@@ -82,7 +82,7 @@ Di VPS, **pilih salah satu** cara berikut.
 
 ### D.1 Paling praktis: `bootstrap-vps.sh` (Docker + clone + Compose)
 
-Skrip memasang **Docker** (lewat skrip resmi get.docker.com) jika belum ada, meng-clone repo ke `**/opt/sayai`**, lalu menjalankan `**install.sh**`.
+Skrip memasang **Docker** (lewat skrip resmi get.docker.com) jika belum ada, meng-clone repo ke **`/opt/sayai`**, lalu menjalankan **`install.sh`**.
 
 ```bash
 export SAYAI_REPO_URL='https://github.com/anutmagang/SayAi.git'
@@ -97,7 +97,7 @@ export SAYAI_PROFILE=full
 curl -fsSL https://raw.githubusercontent.com/anutmagang/SayAi/main/bootstrap-vps.sh | sudo -E bash -s
 ```
 
-> Catatan: baris `curl` di atas baru berhasil setelah branch **main** di GitHub berisi file `bootstrap-vps.sh` (setelah push pertama selesai).
+> Catatan: pastikan branch **main** di GitHub sudah berisi `bootstrap-vps.sh` (repo `anutmagang/SayAi` sudah default begitu).
 
 ### D.2 Manual: clone lalu `install.sh`
 
