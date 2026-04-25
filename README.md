@@ -74,7 +74,7 @@ Optional: edit `.env` to set `POSTGRES_PASSWORD` and `SECRET_KEY` before the fir
 
 ### Runs (Phase 2)
 
-Set `OPENAI_API_KEY` in `.env` (or your LiteLLM-supported provider env vars).
+Set provider keys in `.env` (e.g. `OPENAI_API_KEY`) and pick a **LiteLLM model id** with `DEFAULT_LLM_MODEL` (OpenAI, Anthropic, Mistral, Gemini, Ollama, … — see [LiteLLM providers](https://docs.litellm.ai/docs/providers)).
 
 - `GET /api/v1/skills` — list built-in skills + JSON Schemas
 - `GET /api/v1/skills/settings` — merged catalog + per-user enabled/config
