@@ -1,5 +1,20 @@
 export function apiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const env = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const fallback = "http://localhost:8000";
+
+  // Saat UI diakses lewat IP/domain VPS tapi build mem-bake localhost (umum di Docker),
+  // pakai host halaman ini + port API default agar login/API jalan tanpa rebuild.
+  if (typeof window !== "undefined") {
+    const { hostname, protocol } = window.location;
+    const pageIsLocal = hostname === "localhost" || hostname === "127.0.0.1";
+    const envMissingOrLocal =
+      !env || env.includes("localhost") || env.includes("127.0.0.1");
+    if (!pageIsLocal && envMissingOrLocal) {
+      return `${protocol}//${hostname}:8000`;
+    }
+  }
+
+  return env || fallback;
 }
 
 export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {

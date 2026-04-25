@@ -201,7 +201,7 @@ Ganti `IP_VPS` dengan IP publik Anda.
 2. Body JSON: `{"email":"admin@domainanda.com","password":"minimal8huruf"}`
 3. Login dengan `POST /api/v1/auth/login` → simpan `access_token`.
 
-Di UI (`/login`), pastikan `**NEXT_PUBLIC_API_URL`** di `.env` / build mengarah ke URL API yang bisa dijangkau **dari browser** (bukan `http://localhost:8000` jika akses dari luar VPS — gunakan `http://IP_VPS:8000` atau domain HTTPS).
+Di UI (`/login`): (1) daftar user dulu lewat **`/docs`** (`POST /auth/register`); form login default `demo@example.com` hanya contoh — pakai email yang sudah terdaftar. (2) Set **`NEXT_PUBLIC_API_URL=http://IP_VPS:8000`** di `.env`, lalu **`docker compose --profile full build --no-cache frontend`** (URL di-bake saat build). Versi UI terbaru dari repo juga memakai **host halaman + port 8000** otomatis jika build masih memakai `localhost`.
 
 ---
 
