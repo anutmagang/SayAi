@@ -1,0 +1,25 @@
+# Example systemd unit for SayAi health server + optional TUI under screen/tmux.
+# Copy to /etc/systemd/system/sayai.service, adjust User, paths, and ExecStart.
+#
+#   sudo cp docs/vps-sayai.service.example /etc/systemd/system/sayai.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now sayai
+
+[Unit]
+Description=SayAi health HTTP (/health)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/sayai
+Environment=PATH=/opt/sayai/.venv/bin:/usr/local/bin:/usr/bin
+# Load API keys from a root-owned file if preferred:
+# EnvironmentFile=/etc/sayai.env
+ExecStart=/opt/sayai/.venv/bin/sayai server --host 0.0.0.0 --port 8765
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,71 @@
+sayai:
+  version: "0.1.0"
+  mode: local
+  log_level: INFO
+
+llm:
+  default_model: anthropic/claude-3-5-haiku-20241022
+  routing:
+    planning: anthropic/claude-3-5-haiku-20241022
+    coding: anthropic/claude-3-5-haiku-20241022
+    reviewing: anthropic/claude-3-5-haiku-20241022
+    searching: anthropic/claude-3-5-haiku-20241022
+    testing: anthropic/claude-3-5-haiku-20241022
+    cheap: anthropic/claude-3-5-haiku-20241022
+    default: anthropic/claude-3-5-haiku-20241022
+  fallback_chains:
+    anthropic/claude-3-5-haiku-20241022:
+      - gemini/gemini-2.0-flash
+      - groq/llama-3.3-70b-versatile
+
+agents:
+  max_parallel: 4
+  max_iterations: 10
+
+tools:
+  bash_timeout: 30
+  bash_max_output: 5000
+
+memory:
+  short_term_tokens: 8000
+  qdrant_enabled: false
+  qdrant_url: http://localhost:6333
+  qdrant_collection: sayai_memory
+  embedding_model: text-embedding-3-small
+  embedding_dimensions: 1536
+  index_on_read: true
+  index_on_write: true
+  index_max_chunk_chars: 4000
+  redis_url: ""
+
+mcp:
+  servers: []
+
+tool_extra:
+  test_command: pytest -q
+  eslint_path: eslint
+  pyright_command: basedpyright
+
+orchestrator:
+  use_dag: true
+
+server:
+  host: 127.0.0.1
+  port: 8765
+
+features:
+  reflect_after_dag: false
+  cost_log_path: ""
+
+skillhunter:
+  enabled: false
+  min_score: 0.6
+  max_proposals_per_run: 12
+  github_query: "mcp server in:name,description,readme"
+  pypi_query: "mcp agent tool"
+  mcp_registry_url: ""
+
+admin:
+  require_approval: true
+  notify_tui: true
+  notify: []
