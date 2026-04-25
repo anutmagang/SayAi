@@ -6,9 +6,12 @@ import httpx
 
 
 class QdrantHttp:
-    def __init__(self, base_url: str) -> None:
+    def __init__(self, base_url: str, *, api_key: str | None = None) -> None:
         self.base = base_url.rstrip("/")
-        self.client = httpx.Client(timeout=60.0)
+        headers: dict[str, str] | None = None
+        if api_key:
+            headers = {"api-key": api_key.strip()}
+        self.client = httpx.Client(timeout=60.0, headers=headers)
 
     def close(self) -> None:
         self.client.close()

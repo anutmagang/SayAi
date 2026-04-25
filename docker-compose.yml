@@ -30,6 +30,10 @@ services:
   qdrant:
     profiles: ["full"]
     image: qdrant/qdrant:v1.12.5
+    environment:
+      # Samakan dengan QDRANT_API_KEY di .env (backend mengirim header api-key).
+      # Kosong = tanpa auth Qdrant (cukup jika Qdrant hanya di jaringan Docker, tidak dipublikkan).
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-}
     ports:
       - "${QDRANT_HTTP_PORT:-6333}:6333"
       - "${QDRANT_GRPC_PORT:-6334}:6334"
@@ -49,6 +53,7 @@ services:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sayai}:${POSTGRES_PASSWORD:-sayai}@postgres:5432/${POSTGRES_DB:-sayai}
       REDIS_URL: redis://redis:6379/0
       QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       DEFAULT_LLM_MODEL: ${DEFAULT_LLM_MODEL:-gpt-4o-mini}

@@ -10,6 +10,8 @@ Phase 4 adds a **product shell**: per-user **skill settings** (`user_skill_setti
 
 Phase 5 (**Growth**) adds **skill discovery drafts** (`skill_discovery_drafts` + `GET/POST/PATCH/DELETE /api/v1/skill-drafts`), **marketplace-style packs** on disk (`packages/backend/skill_packs/*/manifest.json` + `GET /api/v1/skill-packs`, optional `SKILL_PACKS_EXTRA_DIRS`), **stronger tool sandboxing** (SSRF-safe URL checks for `sayai.http_get`, optional `SKILL_HTTP_HOST_ALLOWLIST`, bounded execution time via `SKILL_TOOL_TIMEOUT_SECONDS` + thread pool), and a **Kubernetes baseline** under `deploy/k8s/` (multi-replica Deployment, Service, HPA, PDB).
 
+**Produksi / VPS:** checklist di **[TUTORIAL-VPS.md](TUTORIAL-VPS.md)**. Qdrant mendukung **API key opsional** lewat **`QDRANT_API_KEY`** di `.env` (Compose menyetel `QDRANT__SERVICE__API_KEY` di container Qdrant; backend mengirim header `api-key`).
+
 ## Tutorial VPS (Bahasa Indonesia, dari nol)
 
 Lihat **[TUTORIAL-VPS.md](TUTORIAL-VPS.md)** — push ke `https://github.com/anutmagang/SayAi.git`, bootstrap satu skrip, `.env`, firewall, dan uji API.

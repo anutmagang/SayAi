@@ -1,6 +1,6 @@
 # Tutorial lengkap SayAi di VPS (dari nol)
 
-Panduan ini memakai repositori: **https://github.com/anutmagang/SayAi.git**
+Panduan ini memakai repositori: **[https://github.com/anutmagang/SayAi.git](https://github.com/anutmagang/SayAi.git)**
 
 Anggap VPS **Ubuntu 22.04/24.04 LTS** (atau Debian 12), akses **SSH** sebagai user dengan `sudo`, dan alamat publik misalnya `203.0.113.10`.
 
@@ -18,9 +18,9 @@ Lakukan di folder project SayAi di komputer Anda.
 
 ### B.1 Buat repositori di GitHub
 
-1. Buka https://github.com/new  
-2. Nama repositori: **SayAi**  
-3. **Jangan** centang “Add a README” (biar kosong, nanti diisi dari push lokal).  
+1. Buka [https://github.com/new](https://github.com/new)
+2. Nama repositori: **SayAi**
+3. **Jangan** centang “Add a README” (biar kosong, nanti diisi dari push lokal).
 4. Buat repositori.
 
 ### B.2 Login Git ke GitHub
@@ -82,7 +82,7 @@ Di VPS, **pilih salah satu** cara berikut.
 
 ### D.1 Paling praktis: `bootstrap-vps.sh` (Docker + clone + Compose)
 
-Skrip memasang **Docker** (lewat skrip resmi get.docker.com) jika belum ada, meng-clone repo ke **`/opt/sayai`**, lalu menjalankan **`install.sh`**.
+Skrip memasang **Docker** (lewat skrip resmi get.docker.com) jika belum ada, meng-clone repo ke `**/opt/sayai`**, lalu menjalankan `**install.sh**`.
 
 ```bash
 export SAYAI_REPO_URL='https://github.com/anutmagang/SayAi.git'
@@ -119,7 +119,7 @@ sudo SAYAI_PROFILE=full ./install.sh
 
 ## Bagian E — Konfigurasi `.env` (wajib dibaca)
 
-File ada di folder instalasi, misalnya **`/opt/sayai/.env`** (atau path clone Anda).
+File ada di folder instalasi, misalnya `**/opt/sayai/.env**` (atau path clone Anda).
 
 ```bash
 sudo nano /opt/sayai/.env
@@ -127,11 +127,13 @@ sudo nano /opt/sayai/.env
 
 Ubah minimal:
 
-| Variabel | Isi |
-|----------|-----|
-| `POSTGRES_PASSWORD` | Password kuat |
-| `SECRET_KEY` | Hasil `openssl rand -hex 32` di VPS |
-| `OPENAI_API_KEY` | Kunci API OpenAI (atau sesuai provider LiteLLM) |
+
+| Variabel            | Isi                                             |
+| ------------------- | ----------------------------------------------- |
+| `POSTGRES_PASSWORD` | Password kuat                                   |
+| `SECRET_KEY`        | Hasil `openssl rand -hex 32` di VPS             |
+| `OPENAI_API_KEY`    | Kunci API OpenAI (atau sesuai provider LiteLLM) |
+
 
 **Mode API saja** (tanpa Qdrant di compose “low”): kosongkan agar health tidak menunggu Qdrant:
 
@@ -173,18 +175,18 @@ sudo ufw status
 
 Ganti `IP_VPS` dengan IP publik Anda.
 
-- **API:** http://IP_VPS:8000  
-- **Swagger:** http://IP_VPS:8000/docs  
-- **Health:** http://IP_VPS:8000/health  
-- **UI** (jika `full`): http://IP_VPS:3000  
+- **API:** [http://IP_VPS:8000](http://IP_VPS:8000)  
+- **Swagger:** [http://IP_VPS:8000/docs](http://IP_VPS:8000/docs)  
+- **Health:** [http://IP_VPS:8000/health](http://IP_VPS:8000/health)  
+- **UI** (jika `full`): [http://IP_VPS:3000](http://IP_VPS:3000)
 
 ### User pertama (owner)
 
-1. Buka **Swagger** → `POST /api/v1/auth/register`  
-2. Body JSON: `{"email":"admin@domainanda.com","password":"minimal8huruf"}`  
+1. Buka **Swagger** → `POST /api/v1/auth/register`
+2. Body JSON: `{"email":"admin@domainanda.com","password":"minimal8huruf"}`
 3. Login dengan `POST /api/v1/auth/login` → simpan `access_token`.
 
-Di UI (`/login`), pastikan **`NEXT_PUBLIC_API_URL`** di `.env` / build mengarah ke URL API yang bisa dijangkau **dari browser** (bukan `http://localhost:8000` jika akses dari luar VPS — gunakan `http://IP_VPS:8000` atau domain HTTPS).
+Di UI (`/login`), pastikan `**NEXT_PUBLIC_API_URL`** di `.env` / build mengarah ke URL API yang bisa dijangkau **dari browser** (bukan `http://localhost:8000` jika akses dari luar VPS — gunakan `http://IP_VPS:8000` atau domain HTTPS).
 
 ---
 
@@ -199,12 +201,25 @@ sudo docker compose restart api
 
 ---
 
+## Checklist “siap pakai maksimal” (produksi)
+
+1. **`.env`**: `POSTGRES_PASSWORD`, `SECRET_KEY` (`openssl rand -hex 32`), `OPENAI_API_KEY`.  
+2. **`ENVIRONMENT=production`** (opsional, untuk konsistensi log/label).  
+3. **`CORS_ORIGINS`**: domain UI Anda (bukan `*`) jika UI di origin berbeda.  
+4. **`QDRANT_API_KEY`**: isi nilai acak (mis. `openssl rand -hex 24`) **jika** Anda membuka port Qdrant ke internet; jika Qdrant hanya internal Docker, boleh kosong. Nilai harus sama antara API dan service Qdrant (Compose sudah menyamakan).  
+5. **`NEXT_PUBLIC_API_URL`**: URL publik API (bukan `localhost`) agar browser pengguna memanggil API yang benar.  
+6. **Firewall**: buka hanya 22, 80/443 (reverse proxy), atau 8000/3000 sementara; **jangan** expose Postgres/Redis ke publik.  
+7. **HTTPS**: pakai Caddy/Nginx + Let’s Encrypt di depan API dan UI.  
+8. Setelah edit `.env`: `cd /opt/sayai && sudo docker compose --profile full up -d --force-recreate`.
+
+---
+
 ## Ringkasan satu halaman
 
-1. Buat repo **SayAi** di GitHub (user **anutmagang**).  
-2. Push kode dari laptop (`git init` → `commit` → `remote` → `push main`).  
-3. Di VPS: `export SAYAI_REPO_URL='https://github.com/anutmagang/SayAi.git'` → `curl … bootstrap-vps.sh | sudo -E bash -s`.  
-4. Edit **`/opt/sayai/.env`**: password DB, `SECRET_KEY`, `OPENAI_API_KEY`, `QDRANT_URL=` untuk mode low.  
+1. Buat repo **SayAi** di GitHub (user **anutmagang**).
+2. Push kode dari laptop (`git init` → `commit` → `remote` → `push main`).
+3. Di VPS: `export SAYAI_REPO_URL='https://github.com/anutmagang/SayAi.git'` → `curl … bootstrap-vps.sh | sudo -E bash -s`.
+4. Edit `**/opt/sayai/.env`**: password DB, `SECRET_KEY`, `OPENAI_API_KEY`, `QDRANT_URL=` untuk mode low.
 5. Buka port **8000** (dan **3000** jika full), uji **/docs**, register user pertama.
 
 ---
@@ -234,12 +249,14 @@ cd /opt/sayai && sudo chmod +x install.sh && sudo ./install.sh
 
 ## Masalah umum
 
-| Gejala | Tindakan |
-|--------|----------|
-| `curl bootstrap-vps.sh` 404 | Pastikan branch **main** sudah ter-push dan nama file benar. |
+
+| Gejala                                  | Tindakan                                                                                                        |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `curl bootstrap-vps.sh` 404             | Pastikan branch **main** sudah ter-push dan nama file benar.                                                    |
 | `git: command not found` saat bootstrap | Pakai skrip **terbaru** dari `main`, atau `apt-get install -y git` lalu ulang (lihat bagian Pemulihan di atas). |
-| Docker permission denied | Jalankan compose dengan `sudo`, atau `sudo usermod -aG docker $USER` lalu logout/login. |
-| `/health/ready` merah tanpa Qdrant | Set `QDRANT_URL=` kosong di `.env`. |
-| UI tidak hit API | Set `NEXT_PUBLIC_API_URL` ke URL publik API, rebuild frontend / pakai profile full dengan env benar. |
+| Docker permission denied                | Jalankan compose dengan `sudo`, atau `sudo usermod -aG docker $USER` lalu logout/login.                         |
+| `/health/ready` merah tanpa Qdrant      | Set `QDRANT_URL=` kosong di `.env`.                                                                             |
+| UI tidak hit API                        | Set `NEXT_PUBLIC_API_URL` ke URL publik API, rebuild frontend / pakai profile full dengan env benar.            |
+
 
 Jika butuh bantuan spesifik (log error, screenshot), kirim pesan error persis dari terminal atau Swagger.

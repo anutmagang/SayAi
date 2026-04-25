@@ -18,6 +18,11 @@ def qdrant_name_for_collection(collection_id: UUID) -> str:
     return f"sayai_rag_{str(collection_id).replace('-', '_')}"
 
 
+def _qdrant_client() -> QdrantHttp:
+    s = get_settings()
+    return QdrantHttp(s.qdrant_url or "", api_key=s.qdrant_api_key)
+
+
 def create_collection(
     *,
     db: Session,
@@ -44,7 +49,7 @@ def create_collection(
     db.refresh(row)
 
     if settings.qdrant_url:
-        q = QdrantHttp(settings.qdrant_url)
+        q = _qdrant_client()
         try:
             q.create_collection(qname, vector_size=vector_size)
         finally:
@@ -113,7 +118,7 @@ def ingest_text_document(
                 }
             )
 
-        q = QdrantHttp(settings.qdrant_url)
+        q = _qdrant_client()
         try:
             q.upsert_points(collection.qdrant_collection, points)
         finally:
@@ -148,7 +153,7 @@ def search_collection(
     k = int(top_k or settings.rag_default_top_k)
     vec = embed_texts(model=collection.embedding_model, texts=[query])[0]
 
-    q = QdrantHttp(settings.qdrant_url)
+    q = _qdrant_client()
     try:
         hits = q.search(collection.qdrant_collection, vector=vec, limit=k)
     finally:
@@ -173,7 +178,7 @@ def delete_collection_vectors(*, collection: RagCollection) -> None:
     settings = get_settings()
     if not settings.qdrant_url:
         return
-    q = QdrantHttp(settings.qdrant_url)
+    q = _qdrant_client()
     try:
         q.delete_collection(collection.qdrant_collection)
     finally:

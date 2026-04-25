@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     database_url: str = Field(validation_alias="DATABASE_URL")
     redis_url: str = Field(default="redis://localhost:6379/0", validation_alias="REDIS_URL")
     qdrant_url: str | None = Field(default=None, validation_alias="QDRANT_URL")
+    qdrant_api_key: str | None = Field(default=None, validation_alias="QDRANT_API_KEY")
 
     cors_origins: str = Field(default="*", validation_alias="CORS_ORIGINS")
 
@@ -58,6 +59,14 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="SKILL_PACKS_EXTRA_DIRS",
     )
+
+    @field_validator("qdrant_api_key", mode="before")
+    @classmethod
+    def empty_qdrant_key_none(cls, v: object) -> str | None:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s or None
 
 
 @lru_cache

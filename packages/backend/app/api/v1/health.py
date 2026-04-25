@@ -46,7 +46,10 @@ def ready(response: Response) -> dict[str, str | bool]:
         checks["qdrant"] = False
         try:
             url = settings.qdrant_url.rstrip("/") + "/readyz"
-            resp = httpx.get(url, timeout=2.0)
+            h: dict[str, str] | None = None
+            if settings.qdrant_api_key:
+                h = {"api-key": settings.qdrant_api_key}
+            resp = httpx.get(url, timeout=2.0, headers=h)
             checks["qdrant"] = resp.status_code == 200
         except Exception:
             logger.exception("Qdrant readiness check failed")
