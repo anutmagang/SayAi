@@ -17,6 +17,9 @@ export default function HomePage() {
         <Link className="underline" href="/chat">
           Chat (chat / agent)
         </Link>
+        <Link className="underline" href="/workspace">
+          Workspace (repo / git dev)
+        </Link>
         <Link className="underline" href="/skills">
           Skill manager
         </Link>

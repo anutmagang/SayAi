@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import httpx
@@ -39,6 +41,25 @@ def noop_handler(args: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
+def time_now_handler(args: dict[str, Any]) -> dict[str, Any]:
+    _ = args
+    return {"utc_iso": datetime.now(timezone.utc).isoformat()}
+
+
+def uuid_handler(args: dict[str, Any]) -> dict[str, Any]:
+    _ = args
+    return {"uuid": str(uuid.uuid4())}
+
+
+def text_stats_handler(args: dict[str, Any]) -> dict[str, Any]:
+    text = str(args.get("text", ""))
+    if not text:
+        return {"characters": 0, "words": 0, "lines": 0}
+    lines = text.count("\n") + 1
+    words = len(text.split())
+    return {"characters": len(text), "words": words, "lines": lines}
+
+
 BUILTIN: list[dict[str, Any]] = [
     {
         "id": "sayai.echo",
@@ -65,5 +86,27 @@ BUILTIN: list[dict[str, Any]] = [
         "description": "Return how many messages are currently in the session context buffer.",
         "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
         "handler": noop_handler,
+    },
+    {
+        "id": "sayai.time_now",
+        "description": "Return the current UTC time as an ISO-8601 string (for grounding timestamps).",
+        "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+        "handler": time_now_handler,
+    },
+    {
+        "id": "sayai.uuid",
+        "description": "Generate a random UUID v4 string (for ids or correlation).",
+        "parameters": {"type": "object", "properties": {}, "additionalProperties": False},
+        "handler": uuid_handler,
+    },
+    {
+        "id": "sayai.text_stats",
+        "description": "Count characters, words, and lines in a text string.",
+        "parameters": {
+            "type": "object",
+            "properties": {"text": {"type": "string"}},
+            "required": ["text"],
+        },
+        "handler": text_stats_handler,
     },
 ]
