@@ -14,6 +14,9 @@ export default function HomePage() {
         <Link className="underline" href="/login">
           Login (stores JWT in localStorage)
         </Link>
+        <Link className="underline" href="/chat">
+          Chat (chat / agent)
+        </Link>
         <Link className="underline" href="/skills">
           Skill manager
         </Link>

@@ -114,9 +114,22 @@ Then open:
 
 - UI: `http://localhost:3000` (with `--profile full`)
 - Skill manager: `/skills`
+- Chat (chat + agent, same session): `/chat`
 - Debug / observability: `/debug`
 - Skill discovery drafts: `/drafts`
 - API docs: `http://localhost:8000/docs`
+
+### CLI chat
+
+`scripts/sayai_chat.py` talks to the same HTTP API as `/chat` (needs **`pip install httpx`**).
+
+```bash
+pip install httpx
+export SAYAI_API_URL=http://127.0.0.1:8000
+python scripts/sayai_chat.py --email you@example.com --password 'yourpassword'
+```
+
+Alternatively set **`SAYAI_TOKEN`** (JWT from login). In the REPL: **`/mode chat|agent`**, **`/new`** (clear session), **`/quit`**.
 
 ### Growth APIs (Phase 5)
 
@@ -132,6 +145,7 @@ SayAi/
 ├── docker-compose.yml
 ├── install.sh
 ├── bootstrap-vps.sh
+├── scripts/sayai_chat.py   # CLI chat (httpx)
 ├── deploy/k8s/           # HA / scale starting point (Kustomize)
 ├── .env.example
 ├── README.md
