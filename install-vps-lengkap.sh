@@ -70,8 +70,8 @@ B. Urutan kerja di VPS (manual singkat)
 --------------------------------------------------------------------------------
 
   sudo apt update && sudo apt install -y git curl
-  git clone REPO_URL_DEFAULT
-  cd SayAi-Dev    # atau nama folder hasil clone
+  git clone https://github.com/anutmagang/SayAi-Dev.git
+  cd SayAi-Dev
   chmod +x install-vps-lengkap.sh install.sh
   ./install-vps-lengkap.sh install --with-system-deps   # Ubuntu/Debian + uv + sync + db
   mkdir -p ~/.config/sayai
