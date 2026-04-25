@@ -82,7 +82,7 @@ Di VPS, **pilih salah satu** cara berikut.
 
 ### D.1 Paling praktis: `bootstrap-vps.sh` (Docker + clone + Compose)
 
-Skrip memasang **Docker** (lewat skrip resmi get.docker.com) jika belum ada, meng-clone repo ke **`/opt/sayai`**, lalu menjalankan **`install.sh`**.
+Skrip memasang **Docker** (lewat skrip resmi get.docker.com) jika belum ada, meng-clone repo ke `**/opt/sayai`**, lalu menjalankan `**install.sh**`.
 
 ```bash
 export SAYAI_REPO_URL='https://github.com/anutmagang/SayAi.git'
@@ -119,7 +119,7 @@ sudo SAYAI_PROFILE=full ./install.sh
 
 ## Bagian E — Konfigurasi `.env` (wajib dibaca)
 
-File ada di folder instalasi, misalnya `**/opt/sayai/.env**` (atau path clone Anda).
+File ada di folder instalasi, misalnya **`/opt/sayai/.env`** (atau path clone Anda).
 
 ```bash
 sudo nano /opt/sayai/.env
@@ -140,6 +140,21 @@ Ubah minimal:
 ```env
 QDRANT_URL=
 ```
+
+### Qdrant Cloud (cluster di qdrant.io / AWS)
+
+Kalau vector DB **bukan** container lokal, tetapi **Qdrant Cloud**, isi di `.env`:
+
+```env
+# Endpoint dari dashboard (biasanya https://....cloud.qdrant.io — tambahkan :6333 jika contoh kode Anda memakai port itu)
+QDRANT_URL=https://CONTOH-ID.region.aws.cloud.qdrant.io:6333
+# API Key dari dashboard (JWT) — sama dengan yang dipakai klien resmi Qdrant
+QDRANT_API_KEY=ganti-dengan-key-baru-setelah-rotasi
+```
+
+SayAi memanggil REST Qdrant dengan header **`api-key`** (sama seperti contoh Python Anda). **Jangan** set `QDRANT__SERVICE__API_KEY` di container Qdrant lokal kalau Anda tidak menjalankan Qdrant di Docker — pakai stack **tanpa** profile `full` untuk Qdrant, atau tetap `full` untuk UI tetapi `QDRANT_URL` tetap mengarah ke cloud (container `qdrant` lokal tidak dipakai API; bisa dimatikan nanti untuk hemat resource).
+
+**Keamanan:** jangan pernah menempel API key di chat/issue; jika sudah terlanjur, **rotate key** di Qdrant Cloud.
 
 Simpan (`Ctrl+O`, Enter, `Ctrl+X` di nano).
 
@@ -203,13 +218,13 @@ sudo docker compose restart api
 
 ## Checklist “siap pakai maksimal” (produksi)
 
-1. **`.env`**: `POSTGRES_PASSWORD`, `SECRET_KEY` (`openssl rand -hex 32`), `OPENAI_API_KEY`.  
-2. **`ENVIRONMENT=production`** (opsional, untuk konsistensi log/label).  
-3. **`CORS_ORIGINS`**: domain UI Anda (bukan `*`) jika UI di origin berbeda.  
-4. **`QDRANT_API_KEY`**: isi nilai acak (mis. `openssl rand -hex 24`) **jika** Anda membuka port Qdrant ke internet; jika Qdrant hanya internal Docker, boleh kosong. Nilai harus sama antara API dan service Qdrant (Compose sudah menyamakan).  
-5. **`NEXT_PUBLIC_API_URL`**: URL publik API (bukan `localhost`) agar browser pengguna memanggil API yang benar.  
-6. **Firewall**: buka hanya 22, 80/443 (reverse proxy), atau 8000/3000 sementara; **jangan** expose Postgres/Redis ke publik.  
-7. **HTTPS**: pakai Caddy/Nginx + Let’s Encrypt di depan API dan UI.  
+1. `**.env**`: `POSTGRES_PASSWORD`, `SECRET_KEY` (`openssl rand -hex 32`), `OPENAI_API_KEY`.
+2. `**ENVIRONMENT=production**` (opsional, untuk konsistensi log/label).
+3. `**CORS_ORIGINS**`: domain UI Anda (bukan `*`) jika UI di origin berbeda.
+4. `**QDRANT_API_KEY**`: isi nilai acak (mis. `openssl rand -hex 24`) **jika** Anda membuka port Qdrant ke internet; jika Qdrant hanya internal Docker, boleh kosong. Nilai harus sama antara API dan service Qdrant (Compose sudah menyamakan).
+5. `**NEXT_PUBLIC_API_URL`**: URL publik API (bukan `localhost`) agar browser pengguna memanggil API yang benar.
+6. **Firewall**: buka hanya 22, 80/443 (reverse proxy), atau 8000/3000 sementara; **jangan** expose Postgres/Redis ke publik.
+7. **HTTPS**: pakai Caddy/Nginx + Let’s Encrypt di depan API dan UI.
 8. Setelah edit `.env`: `cd /opt/sayai && sudo docker compose --profile full up -d --force-recreate`.
 
 ---
