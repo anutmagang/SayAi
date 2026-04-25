@@ -209,11 +209,35 @@ sudo docker compose restart api
 
 ---
 
+## Pemulihan: `git: command not found` lalu `./install.sh: No such file or directory`
+
+Versi bootstrap lama menjalankan **clone sebelum** `git` terpasang. **Perbaikan sudah di `main` di GitHub** — jalankan ulang bootstrap **setelah** tarik skrip terbaru, atau lakukan manual:
+
+```bash
+sudo apt-get update && sudo apt-get install -y git
+# Hapus folder gagal (jika ada dan kosong / tidak lengkap):
+sudo rm -rf /opt/sayai
+export SAYAI_REPO_URL='https://github.com/anutmagang/SayAi.git'
+curl -fsSL https://raw.githubusercontent.com/anutmagang/SayAi/main/bootstrap-vps.sh | sudo -E bash -s
+```
+
+**Atau** tanpa curl ulang (Docker Anda sudah OK):
+
+```bash
+sudo apt-get install -y git
+sudo rm -rf /opt/sayai
+sudo git clone --depth 1 https://github.com/anutmagang/SayAi.git /opt/sayai
+cd /opt/sayai && sudo chmod +x install.sh && sudo ./install.sh
+```
+
+---
+
 ## Masalah umum
 
 | Gejala | Tindakan |
 |--------|----------|
 | `curl bootstrap-vps.sh` 404 | Pastikan branch **main** sudah ter-push dan nama file benar. |
+| `git: command not found` saat bootstrap | Pakai skrip **terbaru** dari `main`, atau `apt-get install -y git` lalu ulang (lihat bagian Pemulihan di atas). |
 | Docker permission denied | Jalankan compose dengan `sudo`, atau `sudo usermod -aG docker $USER` lalu logout/login. |
 | `/health/ready` merah tanpa Qdrant | Set `QDRANT_URL=` kosong di `.env`. |
 | UI tidak hit API | Set `NEXT_PUBLIC_API_URL` ke URL publik API, rebuild frontend / pakai profile full dengan env benar. |

@@ -56,6 +56,23 @@ need_root() {
 
 need_root
 
+# Git harus ada sebelum clone; dulu git baru dipasang di install_docker() setelah clone → gagal di VPS minimal.
+ensure_git_when_cloning() {
+  if [[ -z "${SAYAI_REPO_URL:-}" ]]; then
+    return 0
+  fi
+  if command -v git &>/dev/null; then
+    return 0
+  fi
+  if ! command -v apt-get &>/dev/null; then
+    echo "git tidak terpasang dan apt-get tidak ada. Pasang git manual, lalu ulangi." >&2
+    exit 1
+  fi
+  echo "==> Memasang git (diperlukan untuk clone repo)…" >&2
+  apt-get update -qq
+  apt-get install -y git curl ca-certificates
+}
+
 have_compose() {
   if docker compose version &>/dev/null; then
     return 0
@@ -113,7 +130,14 @@ resolve_repo_root() {
     fi
     echo "==> Meng-clone SayAi ke $SAYAI_HOME …" >&2
     mkdir -p "$(dirname "$SAYAI_HOME")"
-    git clone --depth 1 "$SAYAI_REPO_URL" "$SAYAI_HOME"
+    if ! git clone --depth 1 "$SAYAI_REPO_URL" "$SAYAI_HOME"; then
+      echo "git clone gagal. Periksa URL, jaringan, atau pasang: apt-get install -y git" >&2
+      exit 1
+    fi
+    if [[ ! -f "$SAYAI_HOME/docker-compose.yml" ]]; then
+      echo "Clone selesai tetapi docker-compose.yml tidak ada di $SAYAI_HOME" >&2
+      exit 1
+    fi
     echo "$(cd "$SAYAI_HOME" && pwd)"
     return 0
   fi
@@ -123,7 +147,13 @@ resolve_repo_root() {
   exit 1
 }
 
+ensure_git_when_cloning
+
 REPO_ROOT="$(resolve_repo_root)"
+if [[ -z "$REPO_ROOT" || ! -f "$REPO_ROOT/docker-compose.yml" ]]; then
+  echo "Gagal: folder SayAi tidak valid (REPO_ROOT kosong atau tanpa docker-compose.yml)." >&2
+  exit 1
+fi
 echo "==> Folder SayAi: $REPO_ROOT"
 
 if ! have_docker; then
