@@ -62,6 +62,10 @@ uv run sayai tui
 
 ### 3.3 VPS — satu skrip (tutorial + instal otomatis)
 
+**Lokasi skrip:** `install-vps-lengkap.sh` (folder root proyek, sejajar `pyproject.toml`).
+
+**Lokasi template model minimal:** `docs/settings.pengguna-minimal.yaml` — otomatis disalin ke `~/.config/sayai/settings.yaml` saat pertama kali menjalankan `install` (jika file belum ada).
+
 Di server Linux, dari **root folder** hasil `git clone`:
 
 ```bash
@@ -69,6 +73,11 @@ chmod +x install-vps-lengkap.sh
 ./install-vps-lengkap.sh tutorial    # panduan lengkap: API key, systemd, firewall
 ./install-vps-lengkap.sh install --with-system-deps
 ```
+
+Setelah itu, untuk pemakaian dasar cukup:
+
+1. Edit **`~/.config/sayai/.env`** — isi API key provider yang dipakai model Anda.
+2. Edit **`~/.config/sayai/settings.yaml`** — ubah **satu baris** `x-model-saya: &m "..."` (id model LiteLLM).
 
 Repositori contoh: `https://github.com/anutmagang/SayAi-Dev.git`
 
@@ -205,7 +214,7 @@ TUI admin: melihat proposal, versi, menyetujui/menolak, dll. (lihat `sayai/cli/a
 
 Server HTTP sangat ringan:
 
-- `**GET /`**, `**GET /health**`, `**GET /healthz**` → JSON `{"ok":true,"service":"sayai"}`.
+- `**GET /`**, `**GET /health`**, `**GET /healthz**` → JSON `{"ok":true,"service":"sayai"}`.
 
 ```text
 sayai server [--host HOST] [--port PORT]

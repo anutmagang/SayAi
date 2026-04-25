@@ -6,7 +6,7 @@ Platform coding berbasis agen: orkestrator (Planner → DAG → agregator), memo
 
 - **Windows:** `python -m pip install -e ".[dev]"` lalu `python -m sayai db init`
 - **Linux/macOS:** `./install.sh` (membutuhkan [uv](https://github.com/astral-sh/uv))
-- **VPS (satu file: tutorial + instal otomatis):** `./install-vps-lengkap.sh tutorial` lalu `./install-vps-lengkap.sh install --with-system-deps`
+- **VPS (satu skrip = tutorial + instal otomatis):** file **`install-vps-lengkap.sh`** di root repo. Setelah `install`, pengguna cukup mengedit **`~/.config/sayai/.env`** (API key) dan **`~/.config/sayai/settings.yaml`** (satu baris model `x-model-saya`). Perintah: `./install-vps-lengkap.sh tutorial` lalu `./install-vps-lengkap.sh install --with-system-deps`
 
 Konfigurasi: `%USERPROFILE%\.config\sayai\settings.yaml` dan `.env` di folder yang sama (atau `SAYAI_CONFIG_DIR`).
 

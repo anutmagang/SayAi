@@ -1,0 +1,19 @@
+# =============================================================================
+# Konfig minimal SayAi — cukup edit SATU baris model di bawah (nilai &m).
+# File ini di-copy otomatis ke ~/.config/sayai/settings.yaml saat pertama
+# menjalankan install-vps-lengkap.sh install (jika belum ada).
+# API key tetap di ~/.config/sayai/.env (bukan di sini).
+# Daftar model LiteLLM: https://docs.litellm.ai/docs/providers
+# =============================================================================
+x-model-saya: &m "anthropic/claude-3-5-haiku-20241022"
+
+llm:
+  default_model: *m
+  routing:
+    planning: *m
+    coding: *m
+    reviewing: *m
+    searching: *m
+    testing: *m
+    cheap: *m
+    default: *m

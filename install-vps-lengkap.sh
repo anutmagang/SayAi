@@ -24,6 +24,10 @@ print_tutorial() {
 Ringkasan: Anda butuh VPS Linux (disarankan Ubuntu 24.04 LTS agar Python 3.12
 ada secara default), kunci API LLM, dan opsional Qdrant/Redis.
 
+SETELAH ./install-vps-lengkap.sh install  — biasanya cukup edit 2 file saja:
+  • ~/.config/sayai/.env              → isi API key provider Anda
+  • ~/.config/sayai/settings.yaml     → ubah SATU baris model (lihat bagian 2b)
+
 --------------------------------------------------------------------------------
 A. Apa yang WAJIB diubah / disiapkan
 --------------------------------------------------------------------------------
@@ -32,7 +36,7 @@ A. Apa yang WAJIB diubah / disiapkan
    - Disarankan: /opt/sayai atau $HOME/SayAi-Dev
    - Setelah clone, jalankan skrip instal dari ROOT folder repo (ada pyproject.toml).
 
-2) File ~/.config/sayai/.env  (kunci API — RAHASIA, jangan di-commit)
+2a) File ~/.config/sayai/.env  (kunci API — RAHASIA, jangan di-commit)
    Salin dari .env.example di repo, lalu isi minimal salah satu provider yang
    modelnya Anda pakai di settings.yaml:
 
@@ -47,12 +51,22 @@ A. Apa yang WAJIB diubah / disiapkan
    anthropic/claude-3-5-haiku-20241022 — pastikan provider yang dipakai sudah
    punya kunci di .env.
 
-3) File ~/.config/sayai/settings.yaml  (opsional tapi disarankan)
-   Override YAML di-merge dengan sayai/config/defaults.yaml. Ubah misalnya:
-     llm.default_model, llm.routing, memory.qdrant_enabled, memory.redis_url,
-     orchestrator.use_dag, server.host, server.port, features.*
+2b) File ~/.config/sayai/settings.yaml  (model — dibuat otomatis saat install)
+   Skrip menyalin template docs/settings.pengguna-minimal.yaml jika file belum ada.
+   Buka file tersebut dan edit HANYA baris berikut (ganti id model LiteLLM Anda):
 
-4) Systemd (service jalan otomatis)
+     x-model-saya: &m "anthropic/claude-3-5-haiku-20241022"
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                              ganti string model di sini saja
+
+   Semua task (planning, coding, …) memakai model yang sama lewat anchor YAML &m.
+
+3) Pengaturan lanjutan (OPSIONAL — boleh dibiarkan default)
+   Qdrant, Redis, orchestrator, server port, dll. ada di sayai/config/defaults.yaml
+   dan bisa di-override di settings.yaml jika Anda butuh; untuk pemakaian dasar
+   tidak wajib diubah.
+
+4) Systemd (service jalan otomatis — opsional)
    Edit docs/vps-sayai.service.example:
      User=...           → user Linux Anda (whoami)
      WorkingDirectory=  → path folder repo
@@ -60,7 +74,7 @@ A. Apa yang WAJIB diubah / disiapkan
    Salin ke /etc/systemd/system/sayai.service lalu:
      sudo systemctl daemon-reload && sudo systemctl enable --now sayai
 
-5) Firewall / security group (cloud provider)
+5) Firewall / security group (cloud provider — opsional)
    - Buka port SSH (22) dari IP Anda saja jika bisa.
    - Port 8765 (health) atau reverse proxy: hanya dari load balancer / IP yang perlu.
    - Jangan expose .env ke web.
@@ -137,9 +151,17 @@ copy_config_templates() {
   mkdir -p "${cfg}"
   if [[ ! -f "${cfg}/.env" ]] && [[ -f "${SCRIPT_DIR}/.env.example" ]]; then
     cp "${SCRIPT_DIR}/.env.example" "${cfg}/.env"
-    echo "[SayAi] Dibuat ${cfg}/.env — edit dan isi API key (nano/vim)."
+    echo "[SayAi] Dibuat ${cfg}/.env — isi variabel API key (satu provider cukup)."
   elif [[ -f "${cfg}/.env" ]]; then
     echo "[SayAi] ${cfg}/.env sudah ada, tidak ditimpa."
+  fi
+
+  local tmpl="${SCRIPT_DIR}/docs/settings.pengguna-minimal.yaml"
+  if [[ ! -f "${cfg}/settings.yaml" ]] && [[ -f "${tmpl}" ]]; then
+    cp "${tmpl}" "${cfg}/settings.yaml"
+    echo "[SayAi] Dibuat ${cfg}/settings.yaml — edit SATU baris x-model-saya (id model LiteLLM)."
+  elif [[ -f "${cfg}/settings.yaml" ]]; then
+    echo "[SayAi] ${cfg}/settings.yaml sudah ada, tidak ditimpa."
   fi
 }
 
@@ -171,7 +193,8 @@ run_install() {
 
   echo ""
   echo "[SayAi] Selesai."
-  echo "  • Konfig:  ~/.config/sayai/settings.yaml  dan  ~/.config/sayai/.env"
+  echo "  • Edit API key:  ~/.config/sayai/.env"
+  echo "  • Edit model:    ~/.config/sayai/settings.yaml  (satu baris x-model-saya)"
   echo "  • TUI:     uv run sayai tui"
   echo "  • Health:  uv run sayai server --host 0.0.0.0 --port 8765"
   echo "  • Tutorial penuh: ./install-vps-lengkap.sh tutorial"
