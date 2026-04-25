@@ -20,6 +20,51 @@ type RunDetail = {
   summary: Record<string, unknown> | null;
 };
 
+type SkillSetting = {
+  id: string;
+  description: string;
+  enabled: boolean;
+};
+
+type Draft = {
+  id: string;
+  title: string;
+  status: string;
+  updated_at: string;
+};
+
+type SkillPack = {
+  id?: string;
+  name?: string;
+  version?: string;
+  description?: string;
+};
+
+type ProjectTreeEntry = {
+  path: string;
+  name: string;
+  kind: "dir" | "file";
+};
+
+type ProjectChangedEntry = {
+  status: string;
+  path: string;
+};
+
+type ProjectSnapshot = {
+  root: string;
+  cwd: string;
+  tree: ProjectTreeEntry[];
+  changed: ProjectChangedEntry[];
+};
+
+type ProjectFilePreview = {
+  path: string;
+  size: number;
+  truncated: boolean;
+  content: string;
+};
+
 function makeId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -46,6 +91,16 @@ export default function ChatPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [lastUserInput, setLastUserInput] = useState<string>("");
+  const [panel, setPanel] = useState<"tools" | "discovery" | "project">("tools");
+  const [skills, setSkills] = useState<SkillSetting[]>([]);
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [packs, setPacks] = useState<SkillPack[]>([]);
+  const [project, setProject] = useState<ProjectSnapshot | null>(null);
+  const [projectPreview, setProjectPreview] = useState<ProjectFilePreview | null>(null);
+  const [projectBusy, setProjectBusy] = useState(false);
+  const [projectFilter, setProjectFilter] = useState<"all" | "added" | "modified" | "deleted" | "untracked">("all");
+  const [projectQuery, setProjectQuery] = useState("");
+  const [auxErr, setAuxErr] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -60,6 +115,56 @@ export default function ChatPage() {
     const next = Math.min(Math.max(el.scrollHeight, 48), 180);
     el.style.height = `${next}px`;
   }, [input]);
+
+  const loadAuxiliary = useCallback(async () => {
+    setAuxErr(null);
+    const [skillsRes, draftsRes, packsRes, projectRes] = await Promise.all([
+      apiFetch("/api/v1/skills/settings"),
+      apiFetch("/api/v1/skill-drafts"),
+      apiFetch("/api/v1/skill-packs"),
+      apiFetch("/api/v1/project/snapshot?depth=2"),
+    ]);
+    if (skillsRes.ok) {
+      setSkills((await skillsRes.json()) as SkillSetting[]);
+    }
+    if (draftsRes.ok) {
+      setDrafts((await draftsRes.json()) as Draft[]);
+    }
+    if (packsRes.ok) {
+      const raw = (await packsRes.json()) as { packs?: SkillPack[] };
+      setPacks(Array.isArray(raw.packs) ? raw.packs : []);
+    }
+    if (projectRes.ok) {
+      setProject((await projectRes.json()) as ProjectSnapshot);
+    }
+    if (!skillsRes.ok || !draftsRes.ok || !packsRes.ok || !projectRes.ok) {
+      setAuxErr("Sebagian data tools/discovery belum bisa dimuat.");
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadAuxiliary();
+  }, [loadAuxiliary]);
+
+  const loadFilePreview = useCallback(async (path: string) => {
+    setProjectBusy(true);
+    try {
+      const r = await apiFetch(`/api/v1/project/file?path=${encodeURIComponent(path)}`);
+      if (!r.ok) {
+        const txt = await r.text();
+        setProjectPreview({
+          path,
+          size: 0,
+          truncated: false,
+          content: `Preview error: ${txt || `HTTP ${r.status}`}`,
+        });
+        return;
+      }
+      setProjectPreview((await r.json()) as ProjectFilePreview);
+    } finally {
+      setProjectBusy(false);
+    }
+  }, []);
 
   const send = useCallback(async (override?: string) => {
     const text = (override ?? input).trim();
@@ -147,131 +252,400 @@ export default function ChatPage() {
     "Bantu bikin roadmap produk 30 hari.",
     "Jelaskan bug ini dengan langkah debug bertahap.",
   ];
+  const recentChats = [
+    "New Chat",
+    "Berita Terbaru Indonesia",
+    "AI Household Startup Ideas",
+    "Laporan Berita Tribun",
+  ];
+  const enabledSkills = skills.filter((s) => s.enabled);
+  const draftInReview = drafts.filter((d) => d.status === "submitted");
+  const changedFiles = project?.changed ?? [];
+  const recentTree = project?.tree ?? [];
+  const changedFilesFiltered = changedFiles.filter((f) => {
+    const statusOk = projectFilter === "all" ? true : f.status === projectFilter;
+    const queryOk = projectQuery
+      ? f.path.toLowerCase().includes(projectQuery.toLowerCase())
+      : true;
+    return statusOk && queryOk;
+  });
 
   return (
-    <main className="mx-auto flex h-[calc(100vh-4rem)] max-w-4xl flex-col gap-4 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-100">SayAi Chat</h1>
-          <p className="text-xs text-slate-400">
-            Threaded session chat + agent loop via{" "}
-            <code className="text-slate-300">POST /api/v1/runs</code>.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <label className="flex cursor-pointer items-center gap-1 text-xs text-slate-300">
-            <input
-              type="radio"
-              name="mode"
-              checked={mode === "chat"}
-              onChange={() => setMode("chat")}
-            />
-            Chat
-          </label>
-          <label className="flex cursor-pointer items-center gap-1 text-xs text-slate-300">
-            <input
-              type="radio"
-              name="mode"
-              checked={mode === "agent"}
-              onChange={() => setMode("agent")}
-            />
-            Agent
-          </label>
-          <Link className="text-sm text-sky-400 underline-offset-2 hover:underline" href="/">
-            Home
-          </Link>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between text-xs">
-        <span className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300">
-          {modeLabel}
-        </span>
-        {sessionId ? <span className="text-slate-500">Session: {sessionId}</span> : null}
-      </div>
-
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
-        {messages.length === 0 ? (
-          <div className="space-y-3 rounded-xl border border-dashed border-slate-700 bg-slate-900/40 p-4">
-            <p className="text-sm text-slate-300">Mulai percakapan dengan prompt berikut:</p>
-            <div className="flex flex-wrap gap-2">
-              {quickPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => setInput(prompt)}
-                  className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-300 hover:border-sky-600 hover:text-sky-300"
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
+    <main className="h-[calc(100vh-4rem)] bg-[#060912] text-slate-100">
+      <div className="mx-auto grid h-full max-w-[1500px] grid-cols-1 gap-0 px-3 py-3 md:grid-cols-[250px_1fr] md:px-4 lg:grid-cols-[270px_1fr_230px]">
+        <aside className="hidden h-full flex-col rounded-2xl border border-slate-800 bg-[#0a0f1d] p-3 md:flex">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold tracking-wide text-sky-300">sayai</p>
+            <span className="rounded-md bg-slate-900 px-2 py-1 text-[10px] text-slate-400">chat</span>
           </div>
-        ) : null}
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={
-              msg.role === "user"
-                ? "ml-10 rounded-2xl rounded-br-md bg-sky-900/45 px-4 py-3 text-sm text-slate-100"
-                : msg.role === "system"
-                  ? "mx-auto max-w-xl rounded-lg border border-rose-900/40 bg-rose-950/20 px-3 py-2 text-center text-xs text-rose-300"
-                  : "mr-10 rounded-2xl rounded-bl-md border border-slate-800 bg-slate-900/85 px-4 py-3 text-sm text-slate-100"
-            }
-          >
-            <p className="whitespace-pre-wrap">{msg.content}</p>
-            <p className="mt-2 text-[10px] text-slate-500">
-              {new Date(msg.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </p>
-          </div>
-        ))}
-        {busy ? (
-          <div className="mr-10 inline-flex w-fit items-center gap-2 rounded-2xl rounded-bl-md border border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-sky-400" />
-            Thinking...
-          </div>
-        ) : null}
-        <div ref={bottomRef} />
-      </div>
-
-      {err ? (
-        <div className="flex items-center justify-between rounded-lg border border-rose-900/40 bg-rose-950/20 px-3 py-2">
-          <p className="text-xs text-rose-300">{err}</p>
           <button
             type="button"
-            disabled={busy || !lastUserInput}
-            onClick={() => void send(lastUserInput)}
-            className="rounded-md border border-rose-700 px-2 py-1 text-xs text-rose-200 hover:bg-rose-900/40 disabled:opacity-50"
+            className="mb-3 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-left text-sm text-slate-200 hover:border-sky-600"
           >
-            Retry
+            + New Chat
           </button>
-        </div>
-      ) : null}
+          <div className="mb-2 text-[11px] uppercase tracking-wide text-slate-500">Recent</div>
+          <div className="space-y-1 overflow-y-auto pr-1">
+            {recentChats.map((item) => (
+              <button
+                key={item}
+                type="button"
+                className="w-full truncate rounded-md px-2 py-1.5 text-left text-xs text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+          <div className="mt-auto border-t border-slate-800 pt-3">
+            <Link className="text-xs text-slate-400 hover:text-slate-200" href="/">
+              Back to Home
+            </Link>
+          </div>
+        </aside>
 
-      <div className="flex items-end gap-2">
-        <textarea
-          ref={textareaRef}
-          className="min-h-[48px] flex-1 resize-none rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 focus:ring"
-          rows={2}
-          placeholder="Message... (Enter kirim, Shift+Enter baris baru)"
-          value={input}
-          disabled={busy}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void send();
-            }
-          }}
-        />
-        <button
-          type="button"
-          disabled={busy || !input.trim()}
-          className="h-[48px] rounded-xl bg-sky-600 px-5 text-sm font-medium text-white transition hover:bg-sky-500 disabled:opacity-40"
-          onClick={() => void send()}
-        >
-          {busy ? "Sending..." : "Send"}
-        </button>
+        <section className="flex min-w-0 flex-col rounded-2xl border border-slate-800 bg-[#0b1020] lg:mx-3">
+          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm font-semibold">Chat</h1>
+              <span className="rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-300">
+                {modeLabel}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <select className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none">
+                <option>main</option>
+                <option>workspace</option>
+              </select>
+              <select className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none">
+                <option>claude-opus-4.6</option>
+                <option>gpt-4o-mini</option>
+                <option>gemini-2.5-pro</option>
+              </select>
+              <label className="flex cursor-pointer items-center gap-1 text-xs text-slate-300">
+                <input type="radio" name="mode" checked={mode === "chat"} onChange={() => setMode("chat")} />
+                Chat
+              </label>
+              <label className="flex cursor-pointer items-center gap-1 text-xs text-slate-300">
+                <input type="radio" name="mode" checked={mode === "agent"} onChange={() => setMode("agent")} />
+                Agent
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setMessages([]);
+                  setSessionId(null);
+                  setErr(null);
+                }}
+                className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-600"
+              >
+                New
+              </button>
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            {messages.length === 0 ? (
+              <div className="mx-auto mt-10 max-w-2xl text-center">
+                <p className="mb-2 text-xl font-semibold">Assistant</p>
+                <p className="mb-6 text-sm text-slate-400">
+                  Ketik pesan di bawah untuk mulai percakapan. Session tersimpan agar konteks tetap nyambung.
+                </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {quickPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => setInput(prompt)}
+                      className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-300 hover:border-sky-600 hover:text-sky-300"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mx-auto max-w-3xl space-y-4">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={
+                    msg.role === "user"
+                      ? "ml-12 rounded-2xl rounded-br-md bg-sky-900/40 px-4 py-3 text-sm"
+                      : msg.role === "system"
+                        ? "mx-auto max-w-xl rounded-lg border border-rose-900/40 bg-rose-950/20 px-3 py-2 text-center text-xs text-rose-300"
+                        : "mr-12 rounded-2xl rounded-bl-md border border-slate-800 bg-slate-900/80 px-4 py-3 text-sm"
+                  }
+                >
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                  {msg.role !== "system" ? (
+                    <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
+                      <button
+                        type="button"
+                        onClick={() => void navigator.clipboard?.writeText(msg.content)}
+                        className="rounded border border-slate-700 px-1.5 py-0.5 hover:text-slate-300"
+                      >
+                        Copy
+                      </button>
+                      {msg.role === "assistant" ? (
+                        <button
+                          type="button"
+                          disabled={busy || !lastUserInput}
+                          onClick={() => void send(lastUserInput)}
+                          className="rounded border border-slate-700 px-1.5 py-0.5 hover:text-slate-300 disabled:opacity-50"
+                        >
+                          Regenerate
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  <p className="mt-2 text-[10px] text-slate-500">
+                    {new Date(msg.time).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              ))}
+              {busy ? (
+                <div className="mr-12 inline-flex items-center gap-2 rounded-2xl rounded-bl-md border border-slate-800 bg-slate-900 px-4 py-2 text-xs text-slate-300">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-sky-400" />
+                  Thinking...
+                </div>
+              ) : null}
+              <div ref={bottomRef} />
+            </div>
+          </div>
+
+          <div className="border-t border-slate-800 px-4 py-3">
+            {err ? (
+              <div className="mb-3 flex items-center justify-between rounded-lg border border-rose-900/40 bg-rose-950/20 px-3 py-2">
+                <p className="text-xs text-rose-300">{err}</p>
+                <button
+                  type="button"
+                  disabled={busy || !lastUserInput}
+                  onClick={() => void send(lastUserInput)}
+                  className="rounded-md border border-rose-700 px-2 py-1 text-xs text-rose-200 hover:bg-rose-900/40 disabled:opacity-50"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+            <div className="mx-auto flex max-w-3xl items-end gap-2">
+              <textarea
+                ref={textareaRef}
+                className="min-h-[48px] flex-1 resize-none rounded-xl border border-slate-700 bg-slate-900 px-3 py-3 text-sm text-slate-100 outline-none ring-sky-500/40 placeholder:text-slate-500 focus:ring"
+                rows={2}
+                placeholder="Message Assistant (Enter to send)"
+                value={input}
+                disabled={busy}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                disabled={busy || !input.trim()}
+                className="h-[48px] rounded-xl bg-sky-600 px-5 text-sm font-medium text-white transition hover:bg-sky-500 disabled:opacity-40"
+                onClick={() => void send()}
+              >
+                {busy ? "Sending..." : "Send"}
+              </button>
+            </div>
+            <div className="mx-auto mt-2 flex max-w-3xl justify-between text-[10px] text-slate-500">
+              <span>Shift+Enter for new line</span>
+              {sessionId ? <span>Session: {sessionId}</span> : <span>No session yet</span>}
+            </div>
+          </div>
+        </section>
+
+        <aside className="hidden h-full rounded-2xl border border-slate-800 bg-[#0a0f1d] p-3 text-xs text-slate-400 lg:block">
+          <div className="mb-3 flex items-center gap-1 rounded-lg bg-slate-900/70 p-1">
+            <button
+              type="button"
+              onClick={() => setPanel("tools")}
+              className={`flex-1 rounded-md px-2 py-1 text-[11px] ${
+                panel === "tools" ? "bg-sky-700 text-white" : "text-slate-400"
+              }`}
+            >
+              Tools
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanel("discovery")}
+              className={`flex-1 rounded-md px-2 py-1 text-[11px] ${
+                panel === "discovery" ? "bg-sky-700 text-white" : "text-slate-400"
+              }`}
+            >
+              Discovery
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanel("project")}
+              className={`flex-1 rounded-md px-2 py-1 text-[11px] ${
+                panel === "project" ? "bg-sky-700 text-white" : "text-slate-400"
+              }`}
+            >
+              Project
+            </button>
+          </div>
+          {panel === "tools" ? (
+            <div className="space-y-3">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">AI Tools Runtime</p>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <p className="mb-2 text-slate-300">Enabled skills ({enabledSkills.length})</p>
+                <div className="space-y-1">
+                  {enabledSkills.slice(0, 6).map((s) => (
+                    <div key={s.id} className="rounded bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300">
+                      {s.id}
+                    </div>
+                  ))}
+                  {enabledSkills.length === 0 ? (
+                    <p className="text-[11px] text-slate-500">No enabled skills.</p>
+                  ) : null}
+                </div>
+                <Link className="mt-2 inline-block text-[11px] text-sky-400 hover:underline" href="/skills">
+                  Open Skill Manager
+                </Link>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <p className="text-slate-300">Runtime</p>
+                <p className="mt-1 text-[11px]">Mode: {mode}</p>
+                <p className="text-[11px]">State: {busy ? "Thinking" : "Idle"}</p>
+                <p className="text-[11px]">Messages: {messages.length}</p>
+              </div>
+            </div>
+          ) : panel === "discovery" ? (
+            <div className="space-y-3">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">AI Discovery</p>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <p className="text-slate-300">Draft pipeline</p>
+                <p className="mt-1 text-[11px]">Total drafts: {drafts.length}</p>
+                <p className="text-[11px]">Submitted: {draftInReview.length}</p>
+                <div className="mt-2 space-y-1">
+                  {drafts.slice(0, 4).map((d) => (
+                    <div key={d.id} className="rounded bg-slate-950/60 px-2 py-1">
+                      <p className="truncate text-[11px] text-slate-300">{d.title}</p>
+                      <p className="text-[10px] text-slate-500">{d.status}</p>
+                    </div>
+                  ))}
+                  {drafts.length === 0 ? <p className="text-[11px] text-slate-500">No drafts yet.</p> : null}
+                </div>
+                <Link className="mt-2 inline-block text-[11px] text-sky-400 hover:underline" href="/drafts">
+                  Open Discovery Drafts
+                </Link>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <p className="text-slate-300">Skill packs ({packs.length})</p>
+                <div className="mt-2 space-y-1">
+                  {packs.slice(0, 4).map((p, idx) => (
+                    <div key={`${p.id ?? p.name ?? "pack"}-${idx}`} className="rounded bg-slate-950/60 px-2 py-1 text-[11px] text-slate-300">
+                      {p.name ?? p.id ?? "Unnamed pack"} {p.version ? `v${p.version}` : ""}
+                    </div>
+                  ))}
+                  {packs.length === 0 ? <p className="text-[11px] text-slate-500">No packs found.</p> : null}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Project Files</p>
+                <button
+                  type="button"
+                  onClick={() => void loadAuxiliary()}
+                  className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 hover:border-sky-600"
+                >
+                  Refresh
+                </button>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-2">
+                <input
+                  value={projectQuery}
+                  onChange={(e) => setProjectQuery(e.target.value)}
+                  placeholder="Search files..."
+                  className="mb-2 w-full rounded border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none"
+                />
+                <div className="flex flex-wrap gap-1">
+                  {(["all", "added", "modified", "deleted", "untracked"] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setProjectFilter(f)}
+                      className={`rounded px-2 py-1 text-[10px] ${
+                        projectFilter === f ? "bg-sky-700 text-white" : "bg-slate-800 text-slate-300"
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <p className="mb-2 text-slate-300">Changed files ({changedFilesFiltered.length})</p>
+                <div className="max-h-44 space-y-1 overflow-y-auto pr-1">
+                  {changedFilesFiltered.slice(0, 40).map((f) => (
+                    <button
+                      key={`${f.status}-${f.path}`}
+                      type="button"
+                      onClick={() => void loadFilePreview(f.path)}
+                      className="w-full rounded bg-slate-950/60 px-2 py-1 text-left hover:bg-slate-800"
+                    >
+                      <p className="truncate text-[10px] text-slate-200">{f.path}</p>
+                      <p className="text-[10px] uppercase text-slate-500">{f.status}</p>
+                    </button>
+                  ))}
+                  {changedFilesFiltered.length === 0 ? (
+                    <p className="text-[11px] text-slate-500">No git changes detected.</p>
+                  ) : null}
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <p className="mb-2 text-slate-300">Folders & files ({recentTree.length})</p>
+                <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+                  {recentTree.slice(0, 50).map((entry) => (
+                    <button
+                      key={entry.path}
+                      type="button"
+                      disabled={entry.kind === "dir"}
+                      onClick={() => void loadFilePreview(entry.path)}
+                      className="w-full rounded bg-slate-950/60 px-2 py-1 text-left hover:bg-slate-800 disabled:opacity-60"
+                    >
+                      <p className="truncate text-[10px] text-slate-200">{entry.path}</p>
+                      <p className="text-[10px] uppercase text-slate-500">{entry.kind}</p>
+                    </button>
+                  ))}
+                  {recentTree.length === 0 ? (
+                    <p className="text-[11px] text-slate-500">No tree entries loaded.</p>
+                  ) : null}
+                </div>
+                <p className="mt-2 text-[10px] text-slate-500">Data source: /api/v1/project/snapshot</p>
+              </div>
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
+                <p className="mb-2 text-slate-300">File preview</p>
+                {projectBusy ? <p className="text-[11px] text-slate-500">Loading preview...</p> : null}
+                {projectPreview ? (
+                  <>
+                    <p className="mb-1 truncate text-[10px] text-slate-400">{projectPreview.path}</p>
+                    <pre className="max-h-56 overflow-auto rounded bg-slate-950 p-2 text-[10px] text-slate-300">
+                      {projectPreview.content}
+                    </pre>
+                    {projectPreview.truncated ? (
+                      <p className="mt-1 text-[10px] text-amber-300">Preview truncated.</p>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className="text-[11px] text-slate-500">Click file to preview content.</p>
+                )}
+              </div>
+            </div>
+          )}
+          {auxErr ? <p className="mt-3 text-[11px] text-amber-300">{auxErr}</p> : null}
+        </aside>
       </div>
     </main>
   );

@@ -82,7 +82,7 @@ Di VPS, **pilih salah satu** cara berikut.
 
 ### D.1 Paling praktis: `bootstrap-vps.sh` (Docker + clone + Compose)
 
-Skrip memasang **Docker** (lewat skrip resmi get.docker.com) jika belum ada, meng-clone repo ke `**/opt/sayai`**, lalu menjalankan `**install.sh**`.
+Skrip memasang **Docker** (lewat skrip resmi get.docker.com) jika belum ada, meng-clone repo ke `**/opt/sayai`**, lalu menjalankan `**install.sh`**.
 
 ```bash
 export SAYAI_REPO_URL='https://github.com/anutmagang/SayAi.git'
@@ -119,7 +119,7 @@ sudo SAYAI_PROFILE=full ./install.sh
 
 ## Bagian E — Konfigurasi `.env` (wajib dibaca)
 
-File ada di folder instalasi, misalnya **`/opt/sayai/.env`** (atau path clone Anda).
+File ada di folder instalasi, misalnya `**/opt/sayai/.env**` (atau path clone Anda).
 
 ```bash
 sudo nano /opt/sayai/.env
@@ -152,7 +152,7 @@ QDRANT_URL=https://CONTOH-ID.region.aws.cloud.qdrant.io:6333
 QDRANT_API_KEY=ganti-dengan-key-baru-setelah-rotasi
 ```
 
-SayAi memanggil REST Qdrant dengan header **`api-key`** (sama seperti contoh Python Anda). **Jangan** set `QDRANT__SERVICE__API_KEY` di container Qdrant lokal kalau Anda tidak menjalankan Qdrant di Docker — pakai stack **tanpa** profile `full` untuk Qdrant, atau tetap `full` untuk UI tetapi `QDRANT_URL` tetap mengarah ke cloud (container `qdrant` lokal tidak dipakai API; bisa dimatikan nanti untuk hemat resource).
+SayAi memanggil REST Qdrant dengan header `**api-key**` (sama seperti contoh Python Anda). **Jangan** set `QDRANT__SERVICE__API_KEY` di container Qdrant lokal kalau Anda tidak menjalankan Qdrant di Docker — pakai stack **tanpa** profile `full` untuk Qdrant, atau tetap `full` untuk UI tetapi `QDRANT_URL` tetap mengarah ke cloud (container `qdrant` lokal tidak dipakai API; bisa dimatikan nanti untuk hemat resource).
 
 **Keamanan:** jangan pernah menempel API key di chat/issue; jika sudah terlanjur, **rotate key** di Qdrant Cloud.
 
@@ -201,7 +201,7 @@ Ganti `IP_VPS` dengan IP publik Anda.
 2. Body JSON: `{"email":"admin@domainanda.com","password":"minimal8huruf"}`
 3. Login dengan `POST /api/v1/auth/login` → simpan `access_token`.
 
-Di UI (`/login`): (1) daftar user dulu lewat **`/docs`** (`POST /auth/register`); form login default `demo@example.com` hanya contoh — pakai email yang sudah terdaftar. (2) Set **`NEXT_PUBLIC_API_URL=http://IP_VPS:8000`** di `.env`, lalu **`docker compose --profile full build --no-cache frontend`** (URL di-bake saat build). Versi UI terbaru dari repo juga memakai **host halaman + port 8000** otomatis jika build masih memakai `localhost`.
+Di UI (`/login`): (1) daftar user dulu lewat `**/docs`** (`POST /auth/register`); form login default `demo@example.com` hanya contoh — pakai email yang sudah terdaftar. (2) Set `**NEXT_PUBLIC_API_URL=http://IP_VPS:8000**` di `.env`, lalu `**docker compose --profile full build --no-cache frontend**` (URL di-bake saat build). Versi UI terbaru dari repo juga memakai **host halaman + port 8000** otomatis jika build masih memakai `localhost`.
 
 ---
 
@@ -265,14 +265,14 @@ cd /opt/sayai && sudo chmod +x install.sh && sudo ./install.sh
 ## Masalah umum
 
 
-| Gejala                                  | Tindakan                                                                                                        |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `curl bootstrap-vps.sh` 404             | Pastikan branch **main** sudah ter-push dan nama file benar.                                                    |
-| `git: command not found` saat bootstrap | Pakai skrip **terbaru** dari `main`, atau `apt-get install -y git` lalu ulang (lihat bagian Pemulihan di atas). |
-| Docker permission denied                | Jalankan compose dengan `sudo`, atau `sudo usermod -aG docker $USER` lalu logout/login.                         |
-| `/health/ready` merah tanpa Qdrant      | Set `QDRANT_URL=` kosong di `.env`.                                                                             |
-| UI tidak hit API                        | Set `NEXT_PUBLIC_API_URL` ke URL publik API, rebuild frontend / pakai profile full dengan env benar.            |
-| `POST /auth/register` **500**           | Versi lama: bentrok `passlib` + `bcrypt` 4.1+ di image. `git pull` lalu **`docker compose --profile full build --no-cache api`** (perbaikan pakai `bcrypt` native). |
+| Gejala                                  | Tindakan                                                                                                                                                            |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `curl bootstrap-vps.sh` 404             | Pastikan branch **main** sudah ter-push dan nama file benar.                                                                                                        |
+| `git: command not found` saat bootstrap | Pakai skrip **terbaru** dari `main`, atau `apt-get install -y git` lalu ulang (lihat bagian Pemulihan di atas).                                                     |
+| Docker permission denied                | Jalankan compose dengan `sudo`, atau `sudo usermod -aG docker $USER` lalu logout/login.                                                                             |
+| `/health/ready` merah tanpa Qdrant      | Set `QDRANT_URL=` kosong di `.env`.                                                                                                                                 |
+| UI tidak hit API                        | Set `NEXT_PUBLIC_API_URL` ke URL publik API, rebuild frontend / pakai profile full dengan env benar.                                                                |
+| `POST /auth/register` **500**           | Versi lama: bentrok `passlib` + `bcrypt` 4.1+ di image. `git pull` lalu `**docker compose --profile full build --no-cache api`** (perbaikan pakai `bcrypt` native). |
 
 
 Jika butuh bantuan spesifik (log error, screenshot), kirim pesan error persis dari terminal atau Swagger.
