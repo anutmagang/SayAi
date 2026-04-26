@@ -53,10 +53,14 @@ def hunt_cmd(cwd: Path | None) -> None:
     """Run SkillHunter crawlers + analyzer + rewriter (writes pending proposals)."""
 
     async def _go() -> None:
+        from sayai.cli.hunt_summary import print_hunt_summary
+        from sayai.config import load_config
         from sayai.skillhunter import SkillHunter
 
+        root = (cwd or Path.cwd()).resolve()
+        cfg = load_config()
         stats = await SkillHunter().hunt(cwd=cwd)
-        click.echo(f"SkillHunter done: {stats}")
+        print_hunt_summary(stats, root, cfg)
 
     asyncio.run(_go())
 
@@ -76,8 +80,6 @@ def index_codebase(cwd: Path, max_files: int) -> None:
     """Bulk-index text files into Qdrant (requires memory.qdrant_enabled)."""
 
     async def _go() -> None:
-        from pathlib import Path
-
         from sayai.memory.indexer import index_directory
 
         root = cwd.resolve()
