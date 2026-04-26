@@ -75,12 +75,27 @@ class ToolExecutor:
             return ""
 
         tool_name = tool_match.group(1).strip()
-        args: dict = {}
+        args: dict[str, Any] = {}
         if args_match:
             try:
-                args = json.loads(args_match.group(1).strip())
+                raw = json.loads(args_match.group(1).strip())
+                args = raw if isinstance(raw, dict) else {}
             except json.JSONDecodeError as e:
                 return f"Error: invalid JSON in <args>: {e}"
+
+        args = self._normalize_tool_args(tool_name, args)
+
+        if tool_name == "web_search" and not str(args.get("query", "")).strip():
+            return (
+                "Error: web_search needs a non-empty query in <args>, "
+                'e.g. <args>{"query": "keywords"}</args>'
+            )
+        if tool_name == "retrieve_codebase" and not str(args.get("query", "")).strip():
+            return (
+                "Error: retrieve_codebase needs query in <args>, "
+                'e.g. <args>{"query": "phrase", "path": "."}</args> '
+                "(path optional; directory/dir accepted as alias for path.)"
+            )
 
         handler_name = f"tool_{tool_name}"
         handler = getattr(self, handler_name, None)
@@ -88,6 +103,61 @@ class ToolExecutor:
             return f"Error: tool '{tool_name}' not found"
 
         return await handler(**args)
+
+    def _normalize_tool_args(self, tool_name: str, args: dict[str, Any]) -> dict[str, Any]:
+        """Map common LLM alias keys so ``handler(**args)`` matches method signatures."""
+        a = dict(args)
+
+        if tool_name == "web_search":
+            if "query" not in a or a["query"] in (None, ""):
+                for k in ("q", "search", "keyword", "keywords", "text", "question"):
+                    if a.get(k) not in (None, ""):
+                        a["query"] = str(a[k])
+                        break
+            if "query" not in a or str(a.get("query", "")).strip() == "":
+                # single anonymous string value
+                if len(a) == 1:
+                    only = next(iter(a.values()))
+                    if isinstance(only, str) and only.strip():
+                        a["query"] = only.strip()
+
+        if tool_name == "retrieve_codebase":
+            if "path" not in a or a["path"] in (None, ""):
+                for k in ("directory", "dir", "folder", "root", "cwd", "base"):
+                    if a.get(k) not in (None, ""):
+                        a["path"] = str(a[k])
+                        break
+            if "path" not in a or str(a.get("path", "")).strip() == "":
+                a["path"] = "."
+
+        # Drop kwargs handlers do not accept (avoids "unexpected keyword argument").
+        allowed: dict[str, frozenset[str]] = {
+            "retrieve_codebase": frozenset({"query", "path", "max_files"}),
+            "web_search": frozenset({"query"}),
+            "search_code": frozenset({"query", "path"}),
+            "read_file": frozenset({"path"}),
+            "write_file": frozenset({"path", "content"}),
+            "list_dir": frozenset({"path"}),
+            "fetch_url": frozenset({"url"}),
+            "browser_open": frozenset({"url"}),
+            "vector_search": frozenset({"query", "top_k"}),
+            "scratch_get": frozenset({"key"}),
+            "scratch_set": frozenset({"key", "value"}),
+            "mcp_call": frozenset({"server", "tool", "arguments"}),
+            "bash": frozenset({"command", "timeout"}),
+            "run_tests": frozenset({"command"}),
+            "lint": frozenset({"path"}),
+            "lsp_diagnostics": frozenset({"path"}),
+            "patch_file": frozenset({"path", "diff"}),
+            "git_diff": frozenset({"staged", "paths"}),
+            "git_status": frozenset({"porcelain"}),
+            "git_log": frozenset({"n", "oneline"}),
+            "git_commit": frozenset({"message", "add_all"}),
+        }
+        keys = allowed.get(tool_name)
+        if keys is not None:
+            a = {k: v for k, v in a.items() if k in keys}
+        return a
 
     async def tool_bash(self, command: str, timeout: int | None = None) -> str:
         t = timeout if timeout is not None else self._settings.tools.bash_timeout
