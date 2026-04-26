@@ -97,6 +97,19 @@ class SkillHunterSettings(BaseModel):
     github_query: str = "mcp server in:name,description,readme"
     pypi_query: str = "mcp agent tool"
     mcp_registry_url: str = ""
+    # ClawHub (Convex public API used by clawhub.ai)
+    clawhub_enabled: bool = False
+    clawhub_convex_url: str = "https://wry-manatee-359.convex.cloud"
+    clawhub_sort: str = "downloads"
+    clawhub_num_per_page: int = 25
+    clawhub_max_pages: int = 2
+    clawhub_fetch_readme: bool = True
+    clawhub_delay_sec: float = 0.35
+    clawhub_non_suspicious_only: bool = False
+    # Awesome-style Markdown lists (raw GitHub README URLs)
+    awesome_enabled: bool = False
+    awesome_raw_readme_urls: list[str] = Field(default_factory=list)
+    awesome_max_repos: int = 40
 
 
 class AdminSettings(BaseModel):

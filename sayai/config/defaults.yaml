@@ -64,6 +64,19 @@ skillhunter:
   github_query: "mcp server in:name,description,readme"
   pypi_query: "mcp agent tool"
   mcp_registry_url: ""
+  clawhub_enabled: false
+  clawhub_convex_url: "https://wry-manatee-359.convex.cloud"
+  clawhub_sort: downloads
+  clawhub_num_per_page: 25
+  clawhub_max_pages: 2
+  clawhub_fetch_readme: true
+  clawhub_delay_sec: 0.35
+  clawhub_non_suspicious_only: false
+  awesome_enabled: false
+  awesome_max_repos: 40
+  awesome_raw_readme_urls:
+    - https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md
+    - https://raw.githubusercontent.com/VoltAgent/awesome-openclaw-skills/main/README.md
 
 admin:
   require_approval: true

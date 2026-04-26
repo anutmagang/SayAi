@@ -204,7 +204,14 @@ sayai index [--cwd .] [--max-files 400]
 
 Menjalankan **SkillHunter** (crawler + analyzer + rewriter) dan menulis proposal ke store (SQLite).
 
-Pastikan `skillhunter` dan kredensial jaringan/API sesuai kebutuhan sumber (GitHub token, dll.) jika diperlukan oleh implementasi crawler Anda.
+Pastikan `skillhunter` dan kredensial jaringan/API sesuai kebutuhan sumber (misalnya `GITHUB_TOKEN` untuk API GitHub).
+
+**Sumber tambahan (opsional, di `settings.yaml` → `skillhunter`):**
+
+- **`clawhub_enabled`:** daftar skill publik dari **Convex** yang dipakai [clawhub.ai](https://clawhub.ai) (`skills:listPublicPageV4` + opsional `skills:getReadme`). Atur `clawhub_convex_url` jika deployment Convex berubah; batasi beban dengan `clawhub_max_pages`, `clawhub_num_per_page`, `clawhub_delay_sec`. Tanpa README lebih ringan: `clawhub_fetch_readme: false`.
+- **`awesome_enabled`** + **`awesome_raw_readme_urls`:** unduh README Markdown mentah (biasanya URL `raw.githubusercontent.com/.../README.md`) dan ekstrak link `https://github.com/org/repo`. Default di `defaults.yaml` mencakup *awesome-mcp-servers* dan *awesome-openclaw-skills*; Anda bisa menambah URL daftar lain.
+
+Sebelum produksi: tinjau **Terms of Service** situs yang di-crawl dan jangan membebani endpoint pihak ketiga.
 
 ### 5.6 `sayai admin`
 

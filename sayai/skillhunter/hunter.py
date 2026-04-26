@@ -10,7 +10,13 @@ from sayai.config import load_config
 from sayai.db import database as db_module
 from sayai.db.skill_store import SkillStore
 from sayai.skillhunter.analyzer import SkillAnalyzer
-from sayai.skillhunter.crawlers import GitHubCrawler, MCPRegistryCrawler, PyPICrawler
+from sayai.skillhunter.crawlers import (
+    AwesomeMarkdownCrawler,
+    ClawHubConvexCrawler,
+    GitHubCrawler,
+    MCPRegistryCrawler,
+    PyPICrawler,
+)
 from sayai.skillhunter.models import CrawlItem
 from sayai.skillhunter.notifier import HuntNotifier
 from sayai.skillhunter.rewriter import SkillRewriter
@@ -29,11 +35,31 @@ class SkillHunter:
         self.notifier = HuntNotifier()
 
     def _crawlers(self) -> list[Any]:
-        return [
+        crawlers: list[Any] = [
             GitHubCrawler(self._cfg.github_query, per_page=15),
             PyPICrawler(self._cfg.pypi_query, max_packages=12),
             MCPRegistryCrawler(self._cfg.mcp_registry_url, max_items=18),
         ]
+        if self._cfg.clawhub_enabled:
+            crawlers.append(
+                ClawHubConvexCrawler(
+                    convex_url=self._cfg.clawhub_convex_url,
+                    sort=self._cfg.clawhub_sort,
+                    num_per_page=self._cfg.clawhub_num_per_page,
+                    max_pages=self._cfg.clawhub_max_pages,
+                    fetch_readme=self._cfg.clawhub_fetch_readme,
+                    delay_sec=self._cfg.clawhub_delay_sec,
+                    non_suspicious_only=self._cfg.clawhub_non_suspicious_only,
+                )
+            )
+        if self._cfg.awesome_enabled and self._cfg.awesome_raw_readme_urls:
+            crawlers.append(
+                AwesomeMarkdownCrawler(
+                    list(self._cfg.awesome_raw_readme_urls),
+                    max_repos=self._cfg.awesome_max_repos,
+                )
+            )
+        return crawlers
 
     async def hunt(self) -> dict[str, int]:
         if not self._cfg.enabled:
@@ -70,7 +96,9 @@ class SkillHunter:
                     continue
                 lic = (analysis.license or "").lower()
                 if lic in ("unknown", "proprietary", "no-license", ""):
-                    continue
+                    # Curated hubs: analyzer may not infer SPDX; still require recommendation.
+                    if item.source not in ("clawhub", "awesome") or not analysis.recommended:
+                        continue
 
                 skill_md = await self.rewriter.rewrite(item, analysis)
                 if proposed >= self._cfg.max_proposals_per_run:
