@@ -69,7 +69,7 @@ uv run sayai tui
 
 **Lokasi skrip:** `install-vps-lengkap.sh` (folder root proyek, sejajar `pyproject.toml`).
 
-**Lokasi template model minimal:** `docs/settings.pengguna-minimal.yaml` — otomatis disalin ke `~/.config/sayai/settings.yaml` saat pertama kali menjalankan `install` (jika file belum ada).
+**Lokasi template model minimal:** `docs/settings.pengguna-minimal.yaml` — otomatis disalin ke `~/.config/sayai/settings.yaml` saat pertama kali menjalankan `install` (jika file belum ada). Template itu sudah menyertakan **SkillHunter aktif** (Awesome, Autoskills map, ClawHub, dll.). Jika `settings.yaml` lama tanpa blok `skillhunter:`, skrip `install` menambahkan blok tersebut di akhir file.
 
 Di server Linux, dari **root folder** hasil `git clone`:
 

@@ -6,7 +6,7 @@ Platform coding berbasis agen: orkestrator (Planner → DAG → agregator), memo
 
 - **Windows:** `python -m pip install -e ".[dev]"` lalu `python -m sayai db init`
 - **Linux/macOS:** `./install.sh` (membutuhkan [uv](https://github.com/astral-sh/uv))
-- **VPS (satu skrip = tutorial + instal otomatis):** file **`install-vps-lengkap.sh`** — menginstal dependensi Python, `uv`, **`sayai db init`** (SQLite + tabel skill), dan template konfig. **Konten skill** di DB diisi nanti lewat `sayai hunt` / `sayai admin` (opsional). Perintah: `./install-vps-lengkap.sh tutorial` lalu `./install-vps-lengkap.sh install --with-system-deps`
+- **VPS (satu skrip = tutorial + instal otomatis):** file **`install-vps-lengkap.sh`** — menginstal dependensi Python, `uv`, **`sayai db init`**, template `~/.config/sayai/`, dan **SkillHunter diaktifkan** (Awesome, Autoskills map, ClawHub, dll.). Isi DB proposal: `sayai hunt` lalu `sayai admin`. Perintah: `./install-vps-lengkap.sh tutorial` lalu `./install-vps-lengkap.sh install --with-system-deps`
 - **Repo privat / pelanggan VPS:** [docs/PRIVATE_REPO_VPS.md](docs/PRIVATE_REPO_VPS.md) (HTTPS+token, SSH, atau ZIP).
 
 Konfigurasi: `%USERPROFILE%\.config\sayai\settings.yaml` dan `.env` di folder yang sama (atau `SAYAI_CONFIG_DIR`).

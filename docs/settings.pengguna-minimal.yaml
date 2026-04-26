@@ -17,3 +17,13 @@ llm:
     testing: *m
     cheap: *m
     default: *m
+
+# SkillHunter — kandidat skill dari web (GitHub, PyPI, daftar Awesome, peta Autoskills, ClawHub).
+# Butuh API key di .env untuk analyzer/rewriter LLM. Opsional: GITHUB_TOKEN untuk batas rate GitHub.
+# Alur: uv run sayai hunt --cwd .  →  uv run sayai admin  (setujui proposal pending).
+skillhunter:
+  enabled: true
+  awesome_enabled: true
+  autoskills_map_enabled: true
+  clawhub_enabled: true
+  stack_detection_enabled: true

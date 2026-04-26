@@ -27,12 +27,13 @@ ada secara default), kunci API LLM, dan opsional Qdrant/Redis.
 
 Apa yang diinstal skrip ini (LENGKAP untuk menjalankan SayAi):
   • Dependensi Python proyek (uv sync)
-  • Basis data SQLite + tabel skill (sayai db init) — SIAP dipakai, isi skill MASIH KOSONG
+  • Basis data SQLite + tabel skill (sayai db init) — SIAP dipakai
   • File ~/.config/sayai/.env dan settings.yaml (template) agar LLM jalan
+  • SkillHunter diaktifkan di settings (Awesome, Autoskills map, ClawHub, + GitHub/PyPI bawaan)
 
-Skill (konten agen) TIDAK diunduh otomatis saat instal. Alur skill: aktifkan
-skillhunter di settings → sayai hunt → sayai admin (setujui). Tanpa itu, TUI/run
-tetap jalan; bagian "skill store" kosong sampai Anda isi.
+Isi skill di database: jalankan setelah API key ada: uv run sayai hunt --cwd . lalu
+uv run sayai admin untuk menyetujui proposal. Tanpa hunt+approve, TUI/run tetap jalan;
+skill store bisa kosong sampai Anda isi.
 
 SETELAH ./install-vps-lengkap.sh install  — biasanya cukup edit 2 file saja:
   • ~/.config/sayai/.env              → isi API key provider Anda
@@ -207,6 +208,26 @@ copy_config_templates() {
   fi
 }
 
+# Tambahkan blok skillhunter bila settings lama belum punya (tanpa menimpa file utuh).
+append_skillhunter_block_if_missing() {
+  local f="${HOME}/.config/sayai/settings.yaml"
+  [[ -f "${f}" ]] || return 0
+  if grep -qE '^[[:space:]]*skillhunter:' "${f}"; then
+    return 0
+  fi
+  cat >>"${f}" <<'SKILLBLOCK'
+
+# --- SkillHunter (ditambah otomatis install-vps-lengkap.sh; sunting di sini jika perlu) ---
+skillhunter:
+  enabled: true
+  awesome_enabled: true
+  autoskills_map_enabled: true
+  clawhub_enabled: true
+  stack_detection_enabled: true
+SKILLBLOCK
+  echo "[SayAi] Menambahkan blok skillhunter ke ${f} (file lama tanpa skillhunter)."
+}
+
 run_install() {
   local with_sys="${1:-}"
 
@@ -232,14 +253,16 @@ run_install() {
   uv sync
   uv run sayai db init
   copy_config_templates
+  append_skillhunter_block_if_missing
 
   echo ""
   echo "[SayAi] Selesai."
   echo "  • Edit API key:  ~/.config/sayai/.env"
   echo "  • Edit model:    ~/.config/sayai/settings.yaml  (satu baris x-model-saya)"
+  echo "  • SkillHunter:   sudah diaktifkan di settings (hunt perlu API key untuk analyzer LLM)"
   echo "  • TUI:     uv run sayai tui"
   echo "  • Health:  uv run sayai server --host 0.0.0.0 --port 8765"
-  echo "  • Skill (opsional): set skillhunter.enabled + sumber di settings → uv run sayai hunt --cwd . → uv run sayai admin"
+  echo "  • Skill:   uv run sayai hunt --cwd .  →  uv run sayai admin  (setujui proposal)"
   echo "  • Tutorial penuh: ./install-vps-lengkap.sh tutorial"
 }
 
