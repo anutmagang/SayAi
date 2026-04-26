@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from pathlib import Path
 from typing import Any
 
 import aiosqlite
@@ -17,6 +18,11 @@ from sayai.skillhunter.crawlers import (
     MCPRegistryCrawler,
     PyPICrawler,
 )
+from sayai.skillhunter.crawlers.autoskills_map_crawler import (
+    DEFAULT_SKILLS_MAP_URL,
+    AutoskillsMapCrawler,
+)
+from sayai.skillhunter.stack_profile import StackProfile, stack_relevance_boost
 from sayai.skillhunter.models import CrawlItem
 from sayai.skillhunter.notifier import HuntNotifier
 from sayai.skillhunter.rewriter import SkillRewriter
@@ -59,12 +65,24 @@ class SkillHunter:
                     max_repos=self._cfg.awesome_max_repos,
                 )
             )
+        if self._cfg.autoskills_map_enabled:
+            map_url = (self._cfg.autoskills_map_url or "").strip() or DEFAULT_SKILLS_MAP_URL
+            crawlers.append(
+                AutoskillsMapCrawler(map_url, max_items=self._cfg.autoskills_map_max_items)
+            )
         return crawlers
 
-    async def hunt(self) -> dict[str, int]:
+    async def hunt(self, cwd: Path | None = None) -> dict[str, int]:
         if not self._cfg.enabled:
             logger.info("SkillHunter disabled in config")
             return {"items": 0, "proposed": 0}
+
+        root = (cwd or Path.cwd()).resolve()
+        profile = (
+            StackProfile.detect(root)
+            if self._cfg.stack_detection_enabled
+            else StackProfile()
+        )
 
         crawlers = self._crawlers()
         raw_batches = await asyncio.gather(
@@ -87,17 +105,25 @@ class SkillHunter:
             try:
                 if await self.store.exists_source_url(item.url):
                     continue
-                analysis = await self.analyzer.analyze(item)
+                analysis = await self.analyzer.analyze(
+                    item, stack_summary=profile.summary if self._cfg.stack_detection_enabled else ""
+                )
                 if analysis.is_duplicate:
                     continue
-                if analysis.score < self._cfg.min_score:
+                boost = (
+                    stack_relevance_boost(item.name, item.description, item.url, profile)
+                    if self._cfg.stack_detection_enabled
+                    else 0.0
+                )
+                effective = min(1.0, float(analysis.score) + boost)
+                if effective < self._cfg.min_score:
                     continue
                 if not analysis.safety_ok or not analysis.recommended:
                     continue
                 lic = (analysis.license or "").lower()
                 if lic in ("unknown", "proprietary", "no-license", ""):
                     # Curated hubs: analyzer may not infer SPDX; still require recommendation.
-                    if item.source not in ("clawhub", "awesome") or not analysis.recommended:
+                    if item.source not in ("clawhub", "awesome", "autoskills_map") or not analysis.recommended:
                         continue
 
                 skill_md = await self.rewriter.rewrite(item, analysis)
@@ -110,7 +136,7 @@ class SkillHunter:
                     source_url=item.url[:2000],
                     license=analysis.license[:80],
                     copyright=(analysis.copyright or "")[:500],
-                    score=analysis.score,
+                    score=effective,
                     content=skill_md,
                     tags=analysis.tags,
                 )
@@ -118,7 +144,7 @@ class SkillHunter:
                 await self.notifier.notify_new_proposal(
                     name=item.name,
                     skill_id=sid,
-                    score=analysis.score,
+                    score=effective,
                     source_url=item.url,
                 )
             except Exception as e:

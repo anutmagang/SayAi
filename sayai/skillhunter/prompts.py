@@ -10,6 +10,7 @@ INPUT you receive:
 - Short description
 - README excerpt
 - Detected license hint
+- Optional: "Repo stack hint" — technologies inferred from the user's project root (package.json, pyproject.toml, etc.). Prefer higher scores for skills clearly useful for that stack; do not invent stack-specific APIs not implied by the README.
 
 OUTPUT: JSON only, no other text.
 

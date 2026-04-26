@@ -41,6 +41,10 @@ class LLMSettings(BaseModel):
 class AgentSettings(BaseModel):
     max_parallel: int = 4
     max_iterations: int = 10
+    load_approved_skills: bool = True
+    approved_skills_max_count: int = 12
+    approved_skills_max_chars: int = 12000
+    approved_skills_per_skill_chars: int = 4000
 
 
 class ToolSettings(BaseModel):
@@ -110,6 +114,10 @@ class SkillHunterSettings(BaseModel):
     awesome_enabled: bool = False
     awesome_raw_readme_urls: list[str] = Field(default_factory=list)
     awesome_max_repos: int = 40
+    autoskills_map_enabled: bool = False
+    autoskills_map_url: str = ""
+    autoskills_map_max_items: int = 80
+    stack_detection_enabled: bool = True
 
 
 class AdminSettings(BaseModel):

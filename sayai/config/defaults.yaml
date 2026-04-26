@@ -21,6 +21,10 @@ llm:
 agents:
   max_parallel: 4
   max_iterations: 10
+  load_approved_skills: true
+  approved_skills_max_count: 12
+  approved_skills_max_chars: 12000
+  approved_skills_per_skill_chars: 4000
 
 tools:
   bash_timeout: 30
@@ -77,6 +81,10 @@ skillhunter:
   awesome_raw_readme_urls:
     - https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md
     - https://raw.githubusercontent.com/VoltAgent/awesome-openclaw-skills/main/README.md
+  autoskills_map_enabled: false
+  autoskills_map_url: ""
+  autoskills_map_max_items: 80
+  stack_detection_enabled: true
 
 admin:
   require_approval: true

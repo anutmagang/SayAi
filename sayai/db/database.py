@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS skills (
     approved_by TEXT,
     approved_at DATETIME,
     reject_reason TEXT,
-    store_revision INTEGER DEFAULT 1
+    store_revision INTEGER DEFAULT 1,
+    content_sha256 TEXT
 );
 
 CREATE TABLE IF NOT EXISTS skill_sources (
@@ -70,6 +71,11 @@ async def _migrate(db: aiosqlite.Connection) -> None:
     if "store_revision" not in col_names:
         try:
             await db.execute("ALTER TABLE skills ADD COLUMN store_revision INTEGER DEFAULT 1")
+        except aiosqlite.OperationalError:
+            pass
+    if "content_sha256" not in col_names:
+        try:
+            await db.execute("ALTER TABLE skills ADD COLUMN content_sha256 TEXT")
         except aiosqlite.OperationalError:
             pass
 

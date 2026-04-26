@@ -38,7 +38,7 @@ class SkillAnalyzer:
         )
         return not any(b in blob for b in bad)
 
-    async def analyze(self, item: CrawlItem) -> AnalysisResult:
+    async def analyze(self, item: CrawlItem, *, stack_summary: str = "") -> AnalysisResult:
         if not self._heuristic_safety(item):
             return AnalysisResult(
                 score=0.0,
@@ -52,9 +52,15 @@ class SkillAnalyzer:
                 recommended=False,
             )
 
+        stack_block = (
+            f"Repo stack hint (local project): {stack_summary}\n"
+            if stack_summary.strip()
+            else "Repo stack hint: not available.\n"
+        )
         user = (
             f"Name: {item.name}\nVersion: {item.version}\nURL: {item.url}\n"
             f"Source: {item.source}\nLicense hint: {item.license_hint}\n"
+            f"{stack_block}"
             f"Description: {item.description}\nREADME excerpt:\n{item.readme[:6000]}\n"
         )
         raw = await self.llm.complete(

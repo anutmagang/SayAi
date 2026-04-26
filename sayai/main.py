@@ -43,13 +43,19 @@ def db_init() -> None:
 
 
 @cli.command("hunt")
-def hunt_cmd() -> None:
+@click.option(
+    "--cwd",
+    type=click.Path(path_type=Path, file_okay=False, dir_okay=True),
+    default=None,
+    help="Project root for stack detection (pyproject.toml, package.json).",
+)
+def hunt_cmd(cwd: Path | None) -> None:
     """Run SkillHunter crawlers + analyzer + rewriter (writes pending proposals)."""
 
     async def _go() -> None:
         from sayai.skillhunter import SkillHunter
 
-        stats = await SkillHunter().hunt()
+        stats = await SkillHunter().hunt(cwd=cwd)
         click.echo(f"SkillHunter done: {stats}")
 
     asyncio.run(_go())

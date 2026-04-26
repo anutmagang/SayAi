@@ -13,5 +13,5 @@ class CrawlItem:
     description: str
     readme: str = ""
     license_hint: str = ""
-    source: str = ""  # github | pypi | mcp | clawhub | awesome
+    source: str = ""  # github | pypi | mcp | clawhub | awesome | autoskills_map
     extra: dict[str, object] = field(default_factory=dict)

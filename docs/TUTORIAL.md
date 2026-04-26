@@ -60,6 +60,11 @@ Setelah selesai, contoh menjalankan TUI:
 uv run sayai tui
 ```
 
+### 3.2a Pemula & repo privat
+
+- **Istilah & langkah awal:** jalankan **`./install-vps-lengkap.sh tutorial`** di Linux — bagian **E** (pemula) dan **F** (repo privat: HTTPS+token, SSH, atau ZIP).
+- **Deploy saat GitHub privat:** baca **[docs/PRIVATE_REPO_VPS.md](PRIVATE_REPO_VPS.md)**.
+
 ### 3.3 VPS — satu skrip (tutorial + instal otomatis)
 
 **Lokasi skrip:** `install-vps-lengkap.sh` (folder root proyek, sejajar `pyproject.toml`).
@@ -204,6 +209,12 @@ sayai index [--cwd .] [--max-files 400]
 
 Menjalankan **SkillHunter** (crawler + analyzer + rewriter) dan menulis proposal ke store (SQLite).
 
+```text
+sayai hunt [--cwd PATH]
+```
+
+`--cwd` menentukan akar proyek untuk **deteksi stack** (opsional; default direktori kerja saat ini).
+
 Pastikan `skillhunter` dan kredensial jaringan/API sesuai kebutuhan sumber (misalnya `GITHUB_TOKEN` untuk API GitHub).
 
 **Sumber tambahan (opsional, di `settings.yaml` → `skillhunter`):**
@@ -212,6 +223,14 @@ Pastikan `skillhunter` dan kredensial jaringan/API sesuai kebutuhan sumber (misa
 - **`awesome_enabled`** + **`awesome_raw_readme_urls`:** unduh README Markdown mentah (biasanya URL `raw.githubusercontent.com/.../README.md`) dan ekstrak link `https://github.com/org/repo`. Default di `defaults.yaml` mencakup *awesome-mcp-servers* dan *awesome-openclaw-skills*; Anda bisa menambah URL daftar lain.
 
 Sebelum produksi: tinjau **Terms of Service** situs yang di-crawl dan jangan membebani endpoint pihak ketiga.
+
+**`autoskills_map_enabled`:** mengunduh [`skills-map.ts`](https://github.com/midudev/autoskills/blob/main/packages/autoskills/skills-map.ts) (atau URL `autoskills_map_url` Anda) dan mengekstrak target `org/repo` GitHub ke pipeline hunt. Lisensi repo **autoskills** (CC BY-NC) dan lisensi tiap skill upstream tetap berlaku.
+
+**`stack_detection_enabled`:** saat `sayai hunt --cwd /path/ke/proyek`, SayAi membaca `pyproject.toml` / `package.json` / `requirements.txt` untuk **menaikkan skor** kandidat yang relevan dengan dependensi terdeteksi, dan mengirim ringkasan stack ke **analyzer** LLM.
+
+**Integritas konten:** setiap proposal menyimpan **`content_sha256`** (SHA-256 isi SKILL hasil rewriter). Saat **`approve`**, isi yang disetujui harus cocok dengan hash itu (mencegah konten pending diubah diam-diam).
+
+**Pemakaian skill oleh agen:** skill berstatus **`approved`** dimuat otomatis ke **prompt sistem** `CoderAgent` / agen lain yang memakai `BaseAgent.run_stream` (batasi lewat blok `agents` di `settings.yaml`: `load_approved_skills`, `approved_skills_max_count`, `approved_skills_max_chars`, `approved_skills_per_skill_chars`). Set `load_approved_skills: false` untuk menonaktifkan.
 
 ### 5.6 `sayai admin`
 

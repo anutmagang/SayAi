@@ -7,11 +7,12 @@
 #   ./install-vps-lengkap.sh install --with-system-deps
 #                                       → + apt (Ubuntu/Debian) untuk paket sistem
 #
-# Repositori resmi contoh: https://github.com/anutmagang/SayAi-Dev.git
+# Repositori publik default: https://github.com/anutmagang/SayAi.git
+# (Repo privat: lihat bagian F di ./install-vps-lengkap.sh tutorial)
 # =============================================================================
 set -euo pipefail
 
-REPO_URL_DEFAULT="https://github.com/anutmagang/SayAi-Dev.git"
+REPO_URL_DEFAULT="https://github.com/anutmagang/SayAi.git"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 print_tutorial() {
@@ -24,6 +25,15 @@ print_tutorial() {
 Ringkasan: Anda butuh VPS Linux (disarankan Ubuntu 24.04 LTS agar Python 3.12
 ada secara default), kunci API LLM, dan opsional Qdrant/Redis.
 
+Apa yang diinstal skrip ini (LENGKAP untuk menjalankan SayAi):
+  • Dependensi Python proyek (uv sync)
+  • Basis data SQLite + tabel skill (sayai db init) — SIAP dipakai, isi skill MASIH KOSONG
+  • File ~/.config/sayai/.env dan settings.yaml (template) agar LLM jalan
+
+Skill (konten agen) TIDAK diunduh otomatis saat instal. Alur skill: aktifkan
+skillhunter di settings → sayai hunt → sayai admin (setujui). Tanpa itu, TUI/run
+tetap jalan; bagian "skill store" kosong sampai Anda isi.
+
 SETELAH ./install-vps-lengkap.sh install  — biasanya cukup edit 2 file saja:
   • ~/.config/sayai/.env              → isi API key provider Anda
   • ~/.config/sayai/settings.yaml     → ubah SATU baris model (lihat bagian 2b)
@@ -33,7 +43,7 @@ A. Apa yang WAJIB diubah / disiapkan
 --------------------------------------------------------------------------------
 
 1) Lokasi kode di VPS
-   - Disarankan: /opt/sayai atau $HOME/SayAi-Dev
+   - Disarankan: /opt/sayai atau $HOME/SayAi (nama folder = bebas, isi repo sama)
    - Setelah clone, jalankan skrip instal dari ROOT folder repo (ada pyproject.toml).
 
 2a) File ~/.config/sayai/.env  (kunci API — RAHASIA, jangan di-commit)
@@ -84,8 +94,8 @@ B. Urutan kerja di VPS (manual singkat)
 --------------------------------------------------------------------------------
 
   sudo apt update && sudo apt install -y git curl
-  git clone https://github.com/anutmagang/SayAi-Dev.git
-  cd SayAi-Dev
+  git clone https://github.com/anutmagang/SayAi.git SayAi
+  cd SayAi
   chmod +x install-vps-lengkap.sh install.sh
   ./install-vps-lengkap.sh install --with-system-deps   # Ubuntu/Debian + uv + sync + db
   mkdir -p ~/.config/sayai
@@ -109,6 +119,38 @@ D. Catatan Python
 
   Proyek membutuhkan Python >= 3.11. Ubuntu 24.04: paket python3.12 tersedia.
   Ubuntu 22.04: pasang python3.11 (mis. deadsnakes PPA) atau upgrade OS.
+
+--------------------------------------------------------------------------------
+E. Untuk pemula (istilah singkat)
+--------------------------------------------------------------------------------
+
+  • VPS      = komputer Linux di internet tempat program dijalankan 24 jam.
+  • API key  = "kata sandi" ke layanan AI (Anthropic/OpenAI/dll.); simpan di .env.
+  • nano     = editor teks sederhana di terminal; simpan Ctrl+O, keluar Ctrl+X.
+  • git clone = menyalin kode dari GitHub ke VPS Anda sekali.
+
+--------------------------------------------------------------------------------
+F. Repo PRIVAT — clone & deploy untuk pelanggan / tim
+--------------------------------------------------------------------------------
+
+  GitHub private tidak bisa di-clone tanpa hak akses. Pilih salah satu:
+
+  1) HTTPS + Token (PAT)
+     - Buat Personal Access Token di GitHub (Settings → Developer settings).
+     - clone:  git clone https://TOKEN_ANDA@github.com/ORG/REPO.git SayAi
+       (ganti TOKEN_ANDA, jangan share token ke publik.)
+
+  2) SSH key di VPS
+     - ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519
+     - cat ~/.ssh/id_ed25519.pub → salin ke GitHub → SSH keys repositori/akun.
+     - clone:  git clone git@github.com:ORG/REPO.git SayAi
+
+  3) Tanpa git: kirim ZIP rilis ke pelanggan; unzip lalu jalankan skrip install
+     dari dalam folder hasil unzip (tetap harus ada pyproject.toml).
+
+  Setelah kode ada di VPS, langkah install SAMA: ./install-vps-lengkap.sh install ...
+
+  Detail tambahan: docs/PRIVATE_REPO_VPS.md
 
 ================================================================================
 TUTOR
@@ -170,7 +212,7 @@ run_install() {
 
   if ! is_repo_root; then
     echo "[SayAi] ERROR: jalankan dari root repositori (berisi pyproject.toml dan folder sayai/)."
-    echo "        git clone ${REPO_URL_DEFAULT} && cd SayAi-Dev && ./install-vps-lengkap.sh install"
+    echo "        git clone ${REPO_URL_DEFAULT} SayAi && cd SayAi && ./install-vps-lengkap.sh install"
     exit 1
   fi
 
@@ -197,6 +239,7 @@ run_install() {
   echo "  • Edit model:    ~/.config/sayai/settings.yaml  (satu baris x-model-saya)"
   echo "  • TUI:     uv run sayai tui"
   echo "  • Health:  uv run sayai server --host 0.0.0.0 --port 8765"
+  echo "  • Skill (opsional): set skillhunter.enabled + sumber di settings → uv run sayai hunt --cwd . → uv run sayai admin"
   echo "  • Tutorial penuh: ./install-vps-lengkap.sh tutorial"
 }
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -9,6 +10,8 @@ from sayai.config import load_config
 from sayai.llm import LLMClient
 from sayai.memory.context import ContextManager
 from sayai.tools import ToolExecutor
+
+logger = logging.getLogger(__name__)
 
 
 class BaseAgent(ABC):
@@ -67,7 +70,21 @@ class BaseAgent(ABC):
         ttype = self._resolve_llm_task_type(ctx)
 
         self.context.clear()
-        self.context.add("system", self.system_prompt)
+        system = self.system_prompt
+        if self._settings.agents.load_approved_skills:
+            try:
+                from sayai.db.skill_store import SkillStore
+
+                block = await SkillStore().approved_skills_context_block(
+                    max_skills=self._settings.agents.approved_skills_max_count,
+                    max_total_chars=self._settings.agents.approved_skills_max_chars,
+                    per_skill_chars=self._settings.agents.approved_skills_per_skill_chars,
+                )
+                if block:
+                    system = f"{system}\n\n{block}"
+            except Exception as e:
+                logger.warning("load approved skills for agent context: %s", e)
+        self.context.add("system", system)
         self.context.add("user", self._format_user_task(task, ctx))
 
         for i in range(self.max_iterations):
